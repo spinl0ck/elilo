@@ -95,38 +95,23 @@ ifeq ($(CONFIG_chooser_textmenu),y)
 CFLAGS += -DCONFIG_CHOOSER_TEXTMENU
 endif
 
+prefix	        = /usr/bin/
+  # Redhat 8.0 ia32 gcc-3.x version is reported to produce working EFI binaries.
+  # Redhat 9.0 ia32 gcc-3.x version is reported to produce BAD binaries.
+CC		= $(prefix)gcc
+AS		= $(prefix)as
+LD		= $(prefix)ld
+AR		= $(prefix)ar
+RANLIB	        = $(prefix)ranlib
+OBJCOPY	        = $(prefix)objcopy
+
 ifeq ($(ARCH),ia64)
-  prefix	= 
-  prefix	= /opt/gcc3.1/bin/
-  CC		= $(prefix)gcc
-  AS		= $(prefix)as
-  LD		= $(prefix)ld
-  LD		= ld
-  AR		= $(prefix)ar
-  RANLIB	= $(prefix)ranlib
-  OBJCOPY	= $(prefix)objcopy
+ GCC_VERSION=$(shell $(CROSS_COMPILE)$(CC) -v 2>&1 | fgrep 'gcc version' | cut -f3 -d' ' | cut -f1 -d'.')
 
-GCC_VERSION=$(shell $(CROSS_COMPILE)$(CC) -v 2>&1 | fgrep 'gcc version' | cut -f3 -d' ' | cut -f1 -d'.')
-
-ifneq ($(GCC_VERSION),2)
+ ifneq ($(GCC_VERSION),2)
         CFLAGS += -frename-registers
-endif
-#
-# EFI specs allows only lower floating point partition to be used
-# 
-# Redhat 8.0 gcc-3.x version is reported to produce working EFI binaries.
-# Redhat 9.0 gcc-3.x version is reported to produce BAD binaries.
-#
-CFLAGS += -mfixed-range=f32-f127
-else
- ifeq ($(ARCH),ia32)
-  prefix	= 
-#  CC		= $(prefix)gcc3
-  CC		= $(prefix)gcc
-  AS		= $(prefix)as
-  LD		= $(prefix)ld
-  AR		= $(prefix)ar
-  RANLIB	= $(prefix)ranlib
-  OBJCOPY	= $(prefix)objcopy
  endif
+
+ # EFI specs allows only lower floating point partition to be used
+ CFLAGS += -mfixed-range=f32-f127
 endif
