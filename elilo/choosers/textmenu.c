@@ -28,7 +28,7 @@
 
 #include "elilo.h"
 
-#define MAX_LABELS	16
+#define MAX_LABELS	64
 #define MSGBUFLEN	4096
 
 static UINT8 msgbuf[MSGBUFLEN];
