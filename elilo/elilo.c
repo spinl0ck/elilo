@@ -123,8 +123,7 @@ kernel_load(EFI_HANDLE image, CHAR16 *kname, kdesc_t *kd, memdesc_t *imem)
 			case ELILO_LOAD_ERROR:
 				goto exit_error;
 			case ELILO_LOAD_ABORTED:
-				/* the free_kmem() is the responsibility of the loader */
-
+				free_kmem();
 				/* we drop initrd in case we aborted the load */
 				elilo_opt.initrd[0] = CHAR_NULL;
 				elilo_opt.prompt    = 1; 
