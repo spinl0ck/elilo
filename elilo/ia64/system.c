@@ -64,7 +64,7 @@ sysdeps_create_boot_params(boot_params_t *bp, CHAR8 *cmdline, memdesc_t *initrd,
 	bp->efi_memdesc_version = mdesc.desc_version;
 	bp->command_line	= (UINTN)cmdline;
 	bp->initrd_start	= (UINTN) initrd->start_addr;
-	bp->initrd_size		= initrd->pgcnt << EFI_PAGE_SHIFT;
+	bp->initrd_size		= initrd->size;
 
 	/* fetch console parameters: */
 	conout = systab->ConOut;

@@ -111,7 +111,7 @@ kernel_load(EFI_HANDLE image, CHAR16 *kname, kdesc_t *kd, memdesc_t *imem)
 	}
 
 	VERB_PRT(3, Print(L"kernel loaded in [0x%lx-0x%lx] entry=0x%lx\n", 
-			  (UINT64)kd->kstart, (UINT64)kd->kend, (UINT64)kd->kentry));
+			  (unsigned long)kd->kstart, (unsigned long)kd->kend, (unsigned long)kd->kentry));
 
 	if (elilo_opt.initrd[0]) {
 
@@ -163,7 +163,7 @@ main_loop(EFI_HANDLE dev, CHAR16 **argv, INTN argc, INTN index, EFI_HANDLE image
 
 	for(;;) {
 		kname[0] = cmdline_tmp[0] = cmdline[0] = CHAR_NULL;
-		imem.start_addr = 0; imem.pgcnt = 0;
+		imem.start_addr = 0; imem.pgcnt = 0; imem.size = 0;
 		elilo_opt.sys_img_opts = NULL;
 
 		if (kernel_chooser(argv, argc, index, kname, cmdline_tmp) == -1) goto exit_error;

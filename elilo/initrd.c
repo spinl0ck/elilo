@@ -42,8 +42,8 @@ load_initrd(CHAR16 *filename, memdesc_t *initrd)
 {
 	EFI_STATUS status;
 	VOID *start_addr = initrd->start_addr;
-	UINT64 size = 0;
 	UINTN pgcnt;
+	UINT64 size;
 	fops_fd_t fd;
 	INTN ret  = ELILO_LOAD_ERROR;
 	
@@ -66,10 +66,10 @@ load_initrd(CHAR16 *filename, memdesc_t *initrd)
 		goto error;
 	}
 	
+	initrd->size = size;
+
 	/* round up to get required number of pages (4KB) */
-	initrd->pgcnt = pgcnt = EFI_SIZE_TO_PAGES(size);
-
-
+	initrd->pgcnt = pgcnt = EFI_SIZE_TO_PAGES(initrd->size);
 
 	start_addr = alloc_pages(pgcnt, EfiLoaderData, start_addr ? AllocateAddress : AllocateAnyPages, start_addr);
 	if (start_addr == NULL) {
@@ -77,11 +77,11 @@ load_initrd(CHAR16 *filename, memdesc_t *initrd)
 		goto error;
 	}
 	VERB_PRT(2, Print(L"initrd: total_size: %ld bytes base: 0x%lx pages %d\n", 
-			size, (UINT64)start_addr, pgcnt));
+			initrd->size, (UINTN)start_addr, pgcnt));
 
 	Print(L"Loading initrd %s...", filename);
 
-	ret = read_file(fd, size, start_addr);	
+	ret = read_file(fd, initrd->size, start_addr);	
 
 	fops_close(fd);
 
@@ -105,6 +105,7 @@ error:
 	 */
 	initrd->start_addr = 0;
 	initrd->pgcnt      = 0;
+	initrd->size       = 0;
 
 	return ret;
 }

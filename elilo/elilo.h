@@ -112,6 +112,7 @@ extern EFI_SYSTEM_TABLE *systab;
 typedef struct {
 	VOID 	*start_addr;
 	UINTN	pgcnt;
+	UINTN	size;
 } memdesc_t;
 
 typedef struct {

@@ -270,7 +270,7 @@ sysdeps_create_boot_params(
 	if (initrd->start_addr && initrd->pgcnt) {
 		/* %%TBD - This will probably have to be changed. */
 		bp->s.initrd_start = (UINT32)initrd->start_addr;
-		bp->s.initrd_size = (UINT32)(initrd->pgcnt * EFI_PAGE_SIZE);
+		bp->s.initrd_size = (UINT32)(initrd->size);
 
 		/*
 		 * This is the RAMdisk root device for RedHat 2.2.x
