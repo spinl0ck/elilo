@@ -14,5 +14,3 @@ Some of the things TO DO:
 	- Convert all filesystems (ext2fs, netfs) to use the FilesystemProtocol interface instead
 
 	- cleanup x86 loader: use the same structure as IA-64
-
-	- support for subnetting in the config file when netbooting
