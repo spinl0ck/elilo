@@ -564,7 +564,7 @@ efi_main (EFI_HANDLE image, EFI_SYSTEM_TABLE *system_tab)
 	 * parse config file (verbose becomes visible if set)
 	 */
 	ret = read_config(ptr);
-	Print(L"read_config=%r\n", ret);
+	VERB_PRT(1,Print(L"read_config=%r\n", ret));
 
         /* Only try the default config filenames if user did not specify a
          * config filename on the command line */
@@ -575,7 +575,7 @@ efi_main (EFI_HANDLE image, EFI_SYSTEM_TABLE *system_tab)
 
                         ptr = elilo_opt.default_configs[retry].fname;
                         ret = read_config(ptr);
-                        Print(L"read_config=%r\n", ret);
+                        VERB_PRT(1,Print(L"read_config=%r\n", ret));
                         retry += 1;
                 }
         }

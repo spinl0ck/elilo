@@ -61,7 +61,7 @@
 #define FILENAME_MAXLEN		256
 #define MAX_ARGS		256
 /* Just pick an arbitrary number that's high enough for now :o) */
-#define MAX_DEFAULT_CONFIGS     8
+#define MAX_DEFAULT_CONFIGS     16
 
 typedef struct {
 	UINT8 nothing_yet;

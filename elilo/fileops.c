@@ -393,7 +393,7 @@ fops_setdefaults(struct config_file *defconf, CHAR16 *kname, UINTN maxlen, CHAR1
         i=0; while (i<MAX_DEFAULT_CONFIGS && defconf[i].fname[0] != CHAR_NULL) i += 1;
 //#ifdef ELILO_DEBUG
         if ((i+3) >= MAX_DEFAULT_CONFIGS) {
-            Print(L"ERROR: MAX_DEFAULT_CONFIGS is not large enough\n");
+            Print(L"ERROR: i = %d, MAX_DEFAULT_CONFIGS is not large enough\n", i);
             return EFI_INVALID_PARAMETER;
         }
 //#endif

@@ -162,7 +162,16 @@ netfs_setdefaults(VOID *intf, config_file_t *config, CHAR16 *kname, UINTN maxlen
 		}
 	} else {
 #ifdef ENABLE_MACHINE_SPECIFIC_NETCONFIG
-#define CONFIG_EXTENSION L".conf\0"
+
+#  if defined(CONFIG_ia64)
+#    define CONFIG_ARCH_EXTENSION L"-ia64.conf\0"
+#  elif defined (CONFIG_ia32)
+#    define CONFIG_ARCH_EXTENSION L"-ia64.conf\0"
+#  else
+#    error "You need to specfy your default arch config file"
+#  endif            
+
+#  define CONFIG_EXTENSION L".conf\0"
 		/*
 		 * will try machine/subnet specific files first.
 		 * the filenames are constructed based on the IP(v4) address
@@ -172,13 +181,22 @@ netfs_setdefaults(VOID *intf, config_file_t *config, CHAR16 *kname, UINTN maxlen
 		StrnCpy(config[0].fname+8, CONFIG_EXTENSION, 6);
 
 		StrnCpy(config[1].fname, str, maxlen-1);
-		StrnCpy(config[1].fname+6, CONFIG_EXTENSION, 6);
+		StrnCpy(config[1].fname+6, CONFIG_ARCH_EXTENSION, 11);
 
 		StrnCpy(config[2].fname, str, maxlen-1);
-		StrnCpy(config[2].fname+4, CONFIG_EXTENSION, 6);
-                
+		StrnCpy(config[2].fname+6, CONFIG_EXTENSION, 6);
+
 		StrnCpy(config[3].fname, str, maxlen-1);
-		StrnCpy(config[3].fname+2, CONFIG_EXTENSION, 6);
+		StrnCpy(config[3].fname+4, CONFIG_ARCH_EXTENSION, 11);
+
+		StrnCpy(config[4].fname, str, maxlen-1);
+		StrnCpy(config[4].fname+4, CONFIG_EXTENSION, 6);
+                
+		StrnCpy(config[5].fname, str, maxlen-1);
+		StrnCpy(config[5].fname+2, CONFIG_ARCH_EXTENSION, 11);
+
+		StrnCpy(config[6].fname, str, maxlen-1);
+		StrnCpy(config[6].fname+2, CONFIG_EXTENSION, 6);
 #else
 		StrnCpy(config[0].fname, NETFS_DEFAULT_CONFIG, maxlen-1);
 		config[0].fname[maxlen-1] = CHAR_NULL;

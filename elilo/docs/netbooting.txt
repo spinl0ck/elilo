@@ -126,7 +126,21 @@ only on two very common cases:
 
 	   This filename is an opportunity to specify a machine specific configuration file.
 
-	2) elilo-ia32.config or elilo-ia64.conf
+   	2) AA[BB[CC]][-ia32|ia64].conf 
+           As of version 3.5, elilo will also look for IPv4 class A,B,C
+           subnet-specific versions of the config file.  This is useful when you
+           want to have a common config file for all machines connected to a
+           particular subnet.
+           
+           For example, if your IP address is 10.0.0.1 (0A000001 in hex), elilo
+           will look first for 0A000001.conf, then 0A0000.conf, then 0A00.conf,
+           and finally 0A.conf.
+
+           Elilo will also try architecture-specific versions of subnet-specific
+           config files first (So for example, on an Itanium system,
+           "0A0000-ia64.conf" will be tried before "0A0000.conf")
+
+	3) elilo-ia32.config or elilo-ia64.conf
 	   
 	   Depending on the machine (client side) architecture elilo will try the IA-32 or
 	   IA-64 file.
@@ -135,7 +149,7 @@ only on two very common cases:
 	   This distinction between the architectures is useful when the same TFTP server services
 	   the two types of clients : IA32- and IA-64 machines.
 
-	 3) elilo.conf
+	 4) elilo.conf
 
   All files use the same format. Elilo will stop at the first match. In case no file is found,
   it will try to download a default kernel file name (vmlinux).
