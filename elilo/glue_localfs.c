@@ -99,13 +99,13 @@ set_default_path(CHAR16 *sptr)
 #define LOCALFS_DEFAULT_KERNEL	L"vmlinux"
 #define LOCALFS_DEFAULT_CONFIG	L"elilo.conf"
 static EFI_STATUS
-localfs_setdefaults(VOID *this, CHAR16 *config, CHAR16 *kname, UINTN maxlen, CHAR16 *devpath)
+localfs_setdefaults(VOID *this, config_file_t *config, CHAR16 *kname, UINTN maxlen, CHAR16 *devpath)
 {
 	StrnCpy(kname, LOCALFS_DEFAULT_KERNEL, maxlen-1);
 	kname[maxlen-1] = CHAR_NULL;
 
-	StrnCpy(config, LOCALFS_DEFAULT_CONFIG, maxlen-1);
-	config[maxlen-1] = CHAR_NULL;
+	StrnCpy(config[0].fname, LOCALFS_DEFAULT_CONFIG, maxlen-1);
+	config[0].fname[maxlen-1] = CHAR_NULL;
 
 	set_default_path(devpath);
 

@@ -33,12 +33,15 @@
  */
 typedef UINTN	fops_fd_t;
 
+/* Forward declaration: */
+struct config_file;
+
 extern EFI_STATUS fops_open(CHAR16 *name, fops_fd_t *fd);
 extern EFI_STATUS fops_read(fops_fd_t fd,VOID *buf, UINTN *size);
 extern EFI_STATUS fops_close(fops_fd_t fd);
 extern EFI_STATUS fops_infosize(fops_fd_t fd, UINT64 *size);
 extern EFI_STATUS fops_seek(fops_fd_t fd, UINT64 newpos);
-extern EFI_STATUS fops_setdefaults(CHAR16 *config, CHAR16 *kname, UINTN maxlen, CHAR16 *devpath);
+extern EFI_STATUS fops_setdefaults(struct config_file *defconf, CHAR16 *kname, UINTN maxlen, CHAR16 *devpath);
 extern EFI_STATUS fops_getdefault_path(CHAR16 *path, UINTN maxlen);
 extern CHAR16     *fops_bootdev_name(VOID);
 
@@ -46,12 +49,13 @@ extern CHAR16     *fops_bootdev_name(VOID);
 /*
  * fileops interface used by underlying filesystems layer
  */
+
 typedef EFI_STATUS (*fops_open_t)(VOID *intf, CHAR16 *name, fops_fd_t *fd);
 typedef EFI_STATUS (*fops_read_t)(VOID *intf, fops_fd_t fd, VOID *buf, UINTN *size);
 typedef	EFI_STATUS (*fops_close_t)(VOID *intf, fops_fd_t fd);
 typedef	EFI_STATUS (*fops_infosize_t)(VOID *intf, fops_fd_t fd, UINT64 *size);
 typedef	EFI_STATUS (*fops_seek_t)(VOID *intf, fops_fd_t fd, UINT64 newpos);
-typedef	EFI_STATUS (*fops_setdefaults_t)(VOID *intf, CHAR16 *config, CHAR16 *kname, UINTN maxlen, CHAR16 *devpath);
+typedef	EFI_STATUS (*fops_setdefaults_t)(VOID *intf, struct config_file *defconfs, CHAR16 *kname, UINTN maxlen, CHAR16 *devpath);
 typedef	EFI_STATUS (*fops_getdefault_path_t)(CHAR16 *path, UINTN maxlen);
 
 typedef struct {

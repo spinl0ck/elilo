@@ -843,7 +843,7 @@ get_config_file(VOID)
 }
 
 EFI_STATUS
-read_config(CHAR16 *filename, INTN retry)
+read_config(CHAR16 *filename)
 {
 	EFI_STATUS status;
 	INTN ret;
@@ -856,49 +856,8 @@ read_config(CHAR16 *filename, INTN retry)
 
 	status = fops_open(filename, &config_fd);
 	if (EFI_ERROR(status)) {
-		/* 
-		 * if the user explicitely specified a filename and we can't
-		 * find it, then we must fail.
-		 */
-		if (elilo_opt.parse_only || retry == 0) {
-			VERB_PRT(3, Print(L"cannot open config file %s\n", filename));
-			return status;
-		}
-		/*
-		 * if not already submitted filename,
-		 */
-		if (StrCmp(filename, ELILO_ARCH_DEFAULT_CONFIG)) {
-			/*
-		 	 * try the arch default file, now
-		 	 */
-			VERB_PRT(3,Print(L"config file %s not found, trying %s\n", 
-				   filename, ELILO_ARCH_DEFAULT_CONFIG));
-
-			StrCpy(global_config.config_file,ELILO_ARCH_DEFAULT_CONFIG);
-
-			status = fops_open(ELILO_ARCH_DEFAULT_CONFIG, &config_fd);
-		} 
-		/*
-		 * if arch specific did not work, try generic
-		 */
-		if (EFI_ERROR(status) && StrCmp(filename, ELILO_DEFAULT_CONFIG)) {
-			/*
-		 	 * try the default file as a last resort
-		 	 */
-			VERB_PRT(3,Print(L"config file %s not found, trying %s\n", 
-				   ELILO_ARCH_DEFAULT_CONFIG, ELILO_DEFAULT_CONFIG));
-
-			StrCpy(global_config.config_file, ELILO_DEFAULT_CONFIG);
-			status = fops_open(ELILO_DEFAULT_CONFIG, &config_fd);
-		}
-		/*
-		 * if nothing worked, then bail out
-		 */
-		if (EFI_ERROR(status)) {
-			VERB_PRT(3, Print(L"no valid config file found\n"));
-			global_config.config_file[0] = CHAR_NULL;
-			return status;
-		}
+                VERB_PRT(3, Print(L"cannot open config file %s\n", filename));
+                return status;
 	}
 	/*
 	 * start numbering at line 1

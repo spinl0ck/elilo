@@ -60,10 +60,16 @@
 #define CMDLINE_MAXLEN		512 /* needed by ia32 */
 #define FILENAME_MAXLEN		256
 #define MAX_ARGS		256
+/* Just pick an arbitrary number that's high enough for now :o) */
+#define MAX_DEFAULT_CONFIGS     8
 
 typedef struct {
 	UINT8 nothing_yet;
 } image_opt_t;
+
+typedef struct config_file {
+	CHAR16 fname[FILENAME_MAXLEN];
+} config_file_t;
 
 typedef struct {
 	/*
@@ -91,7 +97,8 @@ typedef struct {
 	sys_img_options_t *sys_img_opts;	/* architecture depdendent per image options */
 
 	CHAR16 default_kernel[FILENAME_MAXLEN];
-	CHAR16 default_config[FILENAME_MAXLEN];
+	/* CHAR16 default_config[FILENAME_MAXLEN]; */
+        config_file_t default_configs[MAX_DEFAULT_CONFIGS];
 
 	CHAR16 config[FILENAME_MAXLEN];		/* name of config file */
 	CHAR16 chooser[FILENAME_MAXLEN];	/* image chooser to use */
@@ -160,7 +167,7 @@ extern VOID ascii2U(CHAR8 *, CHAR16 *, UINTN);
 extern VOID U2ascii(CHAR16 *, CHAR8 *, UINTN);
 
 /* from config.c (more in config.h) */
-extern EFI_STATUS read_config(CHAR16 *, INTN retry);
+extern EFI_STATUS read_config(CHAR16 *);
 extern VOID print_config_options(VOID);
 extern INTN find_label(CHAR16 *, CHAR16 *, CHAR16 *, CHAR16 *);
 extern VOID print_label_list(VOID);

@@ -345,12 +345,37 @@ fops_seek(fops_fd_t fd, UINT64 newpos)
 }
 
 EFI_STATUS
-fops_setdefaults(CHAR16 *config, CHAR16 *kname, UINTN maxlen, CHAR16 *devpath)
+fops_setdefaults(struct config_file *defconf, CHAR16 *kname, UINTN maxlen, CHAR16 *devpath)
 {
-#define FILEOPS_DEFAULT_KERNEL		L"vmlinux"
-#define FILEOPS_DEFAULT_CONFIG		L"elilo.conf"
+    INTN i;
 
-	if (config == NULL || kname == NULL) return EFI_INVALID_PARAMETER;
+/*
+ * The first default config file is architecture dependent. This is useful
+ * in case of network booting where the server is used for both types of
+ * architectures.
+ */
+#if defined(CONFIG_ia64)
+#define FILEOPS_ARCH_DEFAULT_CONFIG	L"elilo-ia64.conf"
+#elif defined (CONFIG_ia32)
+#define FILEOPS_ARCH_DEFAULT_CONFIG	L"elilo-ia32.conf"
+#else
+#error "You need to specfy your default arch config file"
+#endif
+
+/* 
+ * last resort config file. Common to all architectures
+ */
+#define FILEOPS_DEFAULT_CONFIG	L"elilo.conf"
+
+#define FILEOPS_DEFAULT_KERNEL		L"vmlinux"
+
+#ifdef ELILO_DEBUG
+	if (defconf == NULL || kname == NULL) return EFI_INVALID_PARAMETER;
+#endif
+
+        for (i=0; i<MAX_DEFAULT_CONFIGS; i++) {
+            defconf[i].fname[0] = CHAR_NULL;
+        }
 
 	if (boot_dev == NULL || boot_dev->fops == NULL) {
 		if (boot_dev == NULL) 
@@ -360,13 +385,30 @@ fops_setdefaults(CHAR16 *config, CHAR16 *kname, UINTN maxlen, CHAR16 *devpath)
 
 		Print(L"Using builtin defaults for kernel and config file\n");
 
-		StrnCpy(config, FILEOPS_DEFAULT_CONFIG, maxlen-1);
 		StrnCpy(kname, FILEOPS_DEFAULT_KERNEL, maxlen-1);
-
-		return EFI_UNSUPPORTED;
 	}
-	
-	return boot_dev->fops->setdefaults(boot_dev->fops->intf, config, kname, maxlen, devpath);
+        else {
+                boot_dev->fops->setdefaults(boot_dev->fops->intf, defconf, kname, maxlen, devpath);
+        }
+        i=0; while (i<MAX_DEFAULT_CONFIGS && defconf[i].fname[0] != CHAR_NULL) i += 1;
+//#ifdef ELILO_DEBUG
+        if ((i+3) >= MAX_DEFAULT_CONFIGS) {
+            Print(L"ERROR: MAX_DEFAULT_CONFIGS is not large enough\n");
+            return EFI_INVALID_PARAMETER;
+        }
+//#endif
+        StrnCpy(defconf[i].fname, FILEOPS_ARCH_DEFAULT_CONFIG, maxlen-1);
+        StrnCpy(defconf[i+1].fname, FILEOPS_DEFAULT_CONFIG, maxlen-1);
+
+//#ifdef ELILO_DEBUG
+        VERB_PRT(3,Print(L"Default config filename list:\n"));
+        for (i=0; i<MAX_DEFAULT_CONFIGS; i++) {
+                if (defconf[i].fname[0] == CHAR_NULL) { break; }
+                        VERB_PRT(3,Print(L"\t%s\n", defconf[i].fname));
+        }
+//#endif
+        
+	return EFI_SUCCESS;
 }
 
 EFI_STATUS

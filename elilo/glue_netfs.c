@@ -117,7 +117,7 @@ netfs_set_default_path(netfs_interface_t *netfs, netfs_info_t *info)
 }
 
 static EFI_STATUS
-netfs_setdefaults(VOID *intf, CHAR16 *config, CHAR16 *kname, UINTN maxlen, CHAR16 *devpath)
+netfs_setdefaults(VOID *intf, config_file_t *config, CHAR16 *kname, UINTN maxlen, CHAR16 *devpath)
 {
 	netfs_interface_t *netfs = (netfs_interface_t *)intf;
 	netfs_info_t info;
@@ -149,10 +149,10 @@ netfs_setdefaults(VOID *intf, CHAR16 *config, CHAR16 *kname, UINTN maxlen, CHAR1
 	set_var(VAR_NETFS_DOMAINAME, info.domainame);
 
 	if (info.using_pxe) {
-		status = netfs->netfs_query_layer(netfs, 0, NETFS_CONFIG_LAYER, maxlen, config);
+		status = netfs->netfs_query_layer(netfs, 0, NETFS_CONFIG_LAYER, maxlen, config[0].fname);
 		if (EFI_ERROR(status)) {
-			StrnCpy(config, NETFS_DEFAULT_CONFIG, maxlen-1);
-			config[maxlen-1] = CHAR_NULL;
+			StrnCpy(config[0].fname, NETFS_DEFAULT_CONFIG, maxlen-1);
+			config[0].fname[maxlen-1] = CHAR_NULL;
 		}
 
 		status = netfs->netfs_query_layer(netfs, 0, NETFS_KERNEL_LAYER, maxlen, kname);
@@ -162,21 +162,26 @@ netfs_setdefaults(VOID *intf, CHAR16 *config, CHAR16 *kname, UINTN maxlen, CHAR1
 		}
 	} else {
 #ifdef ENABLE_MACHINE_SPECIFIC_NETCONFIG
+#define CONFIG_EXTENSION L".conf\0"
 		/*
-		 * will try a machine specific file first.
-		 * the file is constructed based on the IP(v4) address
+		 * will try machine/subnet specific files first.
+		 * the filenames are constructed based on the IP(v4) address
 		 */
-		convert_ip2hex(ipaddr, m, config);
+		convert_ip2hex(ipaddr, m, str);
+		StrnCpy(config[0].fname, str, maxlen-1);
+		StrnCpy(config[0].fname+8, CONFIG_EXTENSION, 6);
 
-		config[8]  = L'.';
-		config[9]  = L'c';
-		config[10] = L'o';
-		config[11] = L'n';
-		config[12] = L'f';
-		config[13] = CHAR_NULL;
+		StrnCpy(config[1].fname, str, maxlen-1);
+		StrnCpy(config[1].fname+6, CONFIG_EXTENSION, 6);
+
+		StrnCpy(config[2].fname, str, maxlen-1);
+		StrnCpy(config[2].fname+4, CONFIG_EXTENSION, 6);
+                
+		StrnCpy(config[3].fname, str, maxlen-1);
+		StrnCpy(config[3].fname+2, CONFIG_EXTENSION, 6);
 #else
-		StrnCpy(config, NETFS_DEFAULT_CONFIG, maxlen-1);
-		config[maxlen-1] = CHAR_NULL;
+		StrnCpy(config[0].fname, NETFS_DEFAULT_CONFIG, maxlen-1);
+		config[0].fname[maxlen-1] = CHAR_NULL;
 #endif
 		StrnCpy(kname, NETFS_DEFAULT_KERNEL, maxlen-1);
 		kname[maxlen-1] = CHAR_NULL;

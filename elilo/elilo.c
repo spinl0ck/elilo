@@ -368,8 +368,8 @@ efi_main (EFI_HANDLE image, EFI_SYSTEM_TABLE *system_tab)
 	CHAR16 dpath[FILENAME_MAXLEN];
 	CHAR16 *devpath;
 
-	//elilo_opt.verbose=3;
-	//elilo_opt.debug=1;
+	elilo_opt.verbose=0;
+	elilo_opt.debug=0;
 
 	/* initialize global variable */
 	systab = system_tab;
@@ -548,23 +548,37 @@ efi_main (EFI_HANDLE image, EFI_SYSTEM_TABLE *system_tab)
 	/*
 	 * set per fileops defaults files for configuration and kernel
 	 */
-	fops_setdefaults(elilo_opt.default_config, elilo_opt.default_kernel, FILENAME_MAXLEN, devpath);
+	fops_setdefaults(elilo_opt.default_configs, elilo_opt.default_kernel, FILENAME_MAXLEN, devpath);
 
 	/*
 	 * XXX: won't be visible if verbose not required from command line
 	 */
 	VERB_PRT(2,Print(L"Default config: %s\nDefault_kernel: %s\n",
-			elilo_opt.default_config,elilo_opt.default_kernel));
+			elilo_opt.default_configs[0].fname, elilo_opt.default_kernel));
 	/*
 	 * use default config file if not specified by user
 	 */
-	ptr = elilo_opt.config[0] == CHAR_NULL ?  (retry=1,elilo_opt.default_config) : (retry=0,elilo_opt.config);
+	ptr = elilo_opt.config[0] == CHAR_NULL ?  (retry=1,elilo_opt.default_configs[0].fname) : (retry=0,elilo_opt.config);
 
 	/*
 	 * parse config file (verbose becomes visible if set)
 	 */
-	ret = read_config(ptr, retry);
+	ret = read_config(ptr);
 	Print(L"read_config=%r\n", ret);
+
+        /* Only try the default config filenames if user did not specify a
+         * config filename on the command line */
+        if (elilo_opt.config[0] == CHAR_NULL) {
+                while ((ret != EFI_SUCCESS) &&
+                       (retry < MAX_DEFAULT_CONFIGS) &&
+                       (elilo_opt.default_configs[retry].fname[0] != CHAR_NULL)) {
+
+                        ptr = elilo_opt.default_configs[retry].fname;
+                        ret = read_config(ptr);
+                        Print(L"read_config=%r\n", ret);
+                        retry += 1;
+                }
+        }
 	/*
 	 * when the config file is not found, we fail only if:
 	 * 	- the user did not specified interactive mode
