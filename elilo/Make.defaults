@@ -68,7 +68,7 @@ CPPFLAGS   = -DCONFIG_$(ARCH)
 OPTIMFLAGS = -O2 
 DEBUGFLAGS = -Wall
 CFLAGS	   = $(OPTIMFLAGS) -fpic -fshort-wchar $(DEBUGFLAGS)
-LDFLAGS	   = -nostdlib
+LDFLAGS	   = -nostdlib -znocombreloc
 INSTALL	   = install
 
 ifeq ($(CONFIG_machspec_netconfig),y)

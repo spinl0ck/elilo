@@ -33,6 +33,7 @@
 #define __ELILO_SYSDEPS_IA32_H__
 
 #define ELILO_ARCH	"IA-32" /* ASCII string */
+#define PADDR_MASK	0xfffffff
 
 /* for now use library versions */
 #define Memset(a,v,n)	SetMem((a),(n),(v))
@@ -56,28 +57,7 @@
  * A new bit, LDRFLAG_BOOT_PARAM_RELOC, in the loader_flags
  * field is also defined in this file.
  */
-typedef struct efi_ia32_boot_params {
-	UINT32 size;
-	UINT32 command_line;
-	UINT32 efi_sys_tbl;
-	UINT32 efi_mem_map;
-	UINT32 efi_mem_map_size;
-	UINT32 efi_mem_desc_size;
-	UINT32 efi_mem_desc_version;
-	UINT32 initrd_start;
-	UINT32 initrd_size;
-	UINT32 loader_start; 
-	UINT32 loader_size;
-	UINT32 kernel_start;
-	UINT32 kernel_size;
-	UINT16 num_cols;	
-	UINT16 num_rows;
-	UINT16 orig_x;
-	UINT16 orig_y;	
-} efi_ia32_boot_params_t;
 
-extern efi_ia32_boot_params_t efi_ia32_bp;
- 
 #pragma pack(1)
 typedef union ia32_boot_params {
 	UINT8 raw[0x2000];
@@ -275,7 +255,9 @@ typedef union ia32_boot_params {
 /* 0x224 */	UINT16 heap_end_ptr;		/* LDR */
 
 /* %%TBD */
-/* 0x226 */	UINT32 base_mem_size;		/* LDR */
+/* 0x226 */	UINT16 unused_7;		/* LDR */
+
+/* 0x228 */	UINT32 cmdline_addr; 		/* LDR */
 	} s;
 } boot_params_t;
 #pragma pack()
@@ -354,7 +336,6 @@ start_kernel(VOID *kentry, boot_params_t *bp)
 	/*
 	 * Disable interrupts.
 	 */
-
 	asm volatile ( "cli" : : );
 
 	/*
@@ -362,11 +343,9 @@ start_kernel(VOID *kentry, boot_params_t *bp)
 	 */
 
 	if (bp->s.initrd_start) {
-		/* %%TBD */
 		MEMCPY(15 * 1024 * 1024, bp->s.initrd_start, bp->s.initrd_size);
 		bp->s.initrd_start = 15 * 1024 * 1024;
 	}
-
 	/*
 	 * Copy boot sector, setup data and command line
 	 * to final resting place.  We need to copy
@@ -375,20 +354,6 @@ start_kernel(VOID *kentry, boot_params_t *bp)
 
 	MEMCPY(high_base_mem, bp, 0x4000);
 
-	/* 
-	 * initialize efi ia32 boot params and place them at 1kb up from
-	 * the start of the boot command line param.  This results in the 
-	 * efi ia32 boot params to be copied to 0x00104c00.  See bootparams.c
-	 * for details on how this is arranged.  EFI enabled 
-	 * kernels will look for the efi boot params here to know if the
-	 * kernel is booting on an EFI platform or legacy BIOS based platfrom
-	 */
-
-	efi_ia32_bp.initrd_start = bp->s.initrd_start;
-	efi_ia32_bp.initrd_size = bp->s.initrd_size;
-
-	MEMCPY(high_base_mem + 0x4000 - 0x0400, &efi_ia32_bp, sizeof(efi_ia32_bp));
- 
 	/*
 	 * Initialize Linux GDT.
 	 */
@@ -428,7 +393,6 @@ start_kernel(VOID *kentry, boot_params_t *bp)
 	/*
 	 * Jump to kernel entry point.
 	 */
-
 
 	asm volatile ( "jmp *%%ecx" : : );
 }

@@ -26,30 +26,23 @@
  */
 
 /*
- * this file contains all the IA-32 specific code expected by generic loader
+ * This file contains all the IA-32 specific code expected by generic loader
  */
 #include <efi.h>
 #include <efilib.h>
 
 #include "elilo.h"
 #include "loader.h"
-
 #include "rmswitch.h"
 
-/* = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = */
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-/* extern loader_ops_t plain_loader, gzip_loader; */
-
-efi_ia32_boot_params_t efi_ia32_bp;
-
+extern loader_ops_t bzimage_loader, plain_loader, gzip_loader; 
 
 /*
  * Descriptor table base addresses & limits for Linux startup.
  */
 
 dt_addr_t gdt_addr = { 0x800, 0x94000 };
-dt_addr_t idt_addr = { 0, 0 };
+dt_addr_t idt_addr = { 0, 0 }; 
 
 /*
  * Initial GDT layout for Linux startup.
@@ -77,7 +70,6 @@ UINT16 init_gdt[] = {
 
 UINTN sizeof_init_gdt = sizeof init_gdt;
 
-
 /*
  * Highest available base memory address.
  *
@@ -98,266 +90,33 @@ UINTN high_base_mem = 0x90000;
  *
  * This is computed by taking the highest available extended memory
  * address and rounding down to the nearest EFI_PAGE_SIZE (usually
- * 4 kB) boundary.  The ia32 Linux kernel can only support up to
- * 2 GB (AFAIK).
+ * 4 kB) boundary.  
+ * This is only used for backward compatibility.
  */
 
 UINTN high_ext_mem = 32 * 1024 * 1024;
 
-/*
- * Starting location and size of runtime memory blocks.
- */
-
-boot_params_t *param_start = NULL;
-UINTN param_size = 0;
-
+/* This starting address will hold true for all of the loader types for now */
 VOID *kernel_start = (VOID *)0x100000;	/* 1M */
-UINTN kernel_size = 0x200000;		/* 2M (largest x86 kernel image) */
 
 VOID *initrd_start = NULL;
 UINTN initrd_size = 0;
 
-/*
- * Boot parameters can be relocated if TRUE.
- * Boot parameters must be placed at 0x90000 if FALSE.
- *
- * This will be set to TRUE if bit 6 (0x40) is set in the loader_flags
- * field in a compressed x86 boot format kernel.  This will also be set
- * to TRUE if the kernel is an uncompressed ELF32 image.
- *
- * To remote boot w/ the universal network driver and a 16-bit UNDI
- * this must be set to TRUE.
- */
-
-BOOLEAN can_reloc_boot_params = FALSE;
-
-/* = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = */
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-static INTN
-probe_bzImage_boot(CHAR16 *kname)
-{
-	EFI_STATUS efi_status;
-	UINTN size;
-	fops_fd_t fd;
-	UINT8 bootsect[512];
-
-	DBG_PRT((L"probe_bzImage_boot()\n"));
-
-	if (!kname) {
-		ERR_PRT((L"kname == %xh", kname));
-		free_kmem();
-		return -1;
-	}
-
-	/*
-	 * Open kernel image.
-	 */
-
-	DBG_PRT((L"opening %s...\n", kname));
-
-	efi_status = fops_open(kname, &fd);
-
-	if (EFI_ERROR(efi_status)) {
-		ERR_PRT((L"Could not open %s.", kname));
-		free_kmem();
-		return -1;
-	}
-
-	/*
-	 * Read boot sector.
-	 */
-
-	DBG_PRT((L"\nreading boot sector...\n"));
-
-	size = sizeof bootsect;
-	efi_status = fops_read(fd, bootsect, &size);
-
-	if (EFI_ERROR(efi_status) || size != sizeof bootsect) {
-		ERR_PRT((L"Could not read boot sector from %s.", kname));
-		fops_close(fd);
-		free_kmem();
-		return -1;
-	}
-
-	/*
-	 * Verify boot sector signature.
-	 */
-
-	if (bootsect[0x1FE] != 0x55 || bootsect[0x1FF] != 0xAA) {
-		ERR_PRT((L"%s is not a bzImage kernel image.\n", kname));
-		fops_close(fd);
-		free_kmem();
-		return -1;
-	}
-
-	/*
-	 * Check for out of range setup data size.
-	 * Will almost always be 7, but we will accept 1 to 64.
-	 */
-
-	DBG_PRT((L"bootsect[1F1h] == %d setup sectors\n", bootsect[0x1F1]));
-
-	if (bootsect[0x1F1] < 1 || bootsect[0x1F1] > 64) {
-		ERR_PRT((L"%s is not a valid bzImage kernel image.",
-			kname));
-
-		fops_close(fd);
-		free_kmem();
-		return -1;
-	}
-
-	/*
-	 * Allocate and read setup data.
-	 */
-
-	DBG_PRT((L"reading setup data...\n"));
-
-	param_size = (bootsect[0x1F1] + 1) * 512;
-	//param_start = alloc(param_size, EfiBootServicesData);
-	param_start = alloc(param_size, EfiLoaderData);
-
-	DBG_PRT((L"param_size=%d param_start=%x", param_size, param_start));
-
-	if (!param_start) {
-		ERR_PRT((L"Could not allocate %d bytes of setup data.",
-			param_size));
-
-		fops_close(fd);
-		free_kmem();
-		return -1;
-	}
-
-	CopyMem(param_start, bootsect, sizeof bootsect);
-
-	size = param_size - 512;
-	efi_status = fops_read(fd, ((UINT8 *)param_start) + 512, &size);
-
-	if (EFI_ERROR(efi_status) || size != param_size - 512) {
-		ERR_PRT((L"Could not read %d bytes of setup data.",
-			param_size - 512));
-
-		free(param_start);
-		param_start = NULL;
-		param_size = 0;
-		fops_close(fd);
-		free_kmem();
-		return -1;
-	}
-
-	/*
-	 * Check for setup data signature.
-	 */
-
-	{ UINT8 *c = ((UINT8 *)param_start)+514;
-	DBG_PRT((L"param_start(c=%x): %c-%c-%c-%c", c, (CHAR16)c[0],(CHAR16) c[1], (CHAR16)c[2], (CHAR16)c[3]));
-	}
-	if (CompareMem(((UINT8 *)param_start) + 514, "HdrS", 4)) {
-		ERR_PRT((L"%s does not have a setup signature.",
-			kname));
-
-		free(param_start);
-		param_start = NULL;
-		param_size = 0;
-		fops_close(fd);
-		free_kmem();
-		return -1;
-	}
-
-	/*
-	 * Allocate memory for kernel.
-	 */
-
-	if (alloc_kmem(kernel_start, EFI_SIZE_TO_PAGES(kernel_size))) {
-		ERR_PRT((L"Could not allocate kernel memory."));
-		return -1;
-	} else {
-		VERB_PRT(3, Print(L"kernel_start: 0x%x  kernel_size: %d\n", kernel_start, kernel_size));
-	}
-
-	/*
-	 * Now read the rest of the kernel image into memory.
-	 */
-
-	DBG_PRT((L"reading kernel image...\n"));
-
-	size = kernel_size;
-
-	efi_status = fops_read(fd, kernel_start, &size);
-
-	if (EFI_ERROR(efi_status) || size < 0x10000) {
-		ERR_PRT((L"Error reading kernel image %s.", kname));
-		free(param_start);
-		param_start = NULL;
-		param_size = 0;
-		fops_close(fd);
-		free_kmem();
-		return -1;
-	}
-
-	DBG_PRT((L"kernel image read:  %d bytes, %d Kbytes\n", size, size / 1024));
-
-	/*
-	 * Boot sector, setup data and kernel image loaded.
-	 */
-
-	fops_close(fd);
-	return 0;
-}
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-static INTN
-load_bzImage_boot(CHAR16 *kname, kdesc_t *kd)
-{
-	DBG_PRT((L"load_bzImage_boot()\n"));
-
-	if (!kname || !kd) {
-		ERR_PRT((L"kname=0x%x  kd=0x%x", kname, kd));
-
-		free(param_start);
-		param_start = NULL;
-		param_size = 0;
-		free_kmem();
-		return -1;
-	}
-
-	kd->kstart = kd->kentry = kernel_start;
-	kd->kend = ((UINT8 *)kd->kstart) + kernel_size;
-
-	DBG_PRT((L"kstart=0x%x  kentry=0x%x  kend=0x%x\n", kd->kstart, kd->kentry, kd->kend));
-
-	return 0;
-}
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-static loader_ops_t loader_bzImage_boot = {
-	NULL,
-	L"loader_bzImage_boot",
-	&probe_bzImage_boot,
-	&load_bzImage_boot
-};
-
-/* = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = */
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 INTN
 sysdeps_init(EFI_HANDLE dev)
 {
-
 	DBG_PRT((L"sysdeps_init()\n"));
 
 	/*
 	 * Register our loader(s)...
 	 */
 
-	loader_register(&loader_bzImage_boot);
-	/* loader_register(&plain_loader); */	
-	/* loader_register(&gzip_loader); */
-
-
+	loader_register(&bzimage_loader);
+	loader_register(&plain_loader); 	
+	loader_register(&gzip_loader); 
 	return 0;
 }
 
-/* = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = */
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 /*
  * initrd_get_addr()
  *	Compute a starting address for the initial RAMdisk image.
@@ -381,13 +140,12 @@ sysdeps_initrd_get_addr(kdesc_t *kd, memdesc_t *imem)
 
 	imem->start_addr = kd->kend;
 
-	VERB_PRT(3, Print(L"initrd start_addr=0x%x pgcnt=%d\n", imem->start_addr, imem->pgcnt));
+	VERB_PRT(3, Print(L"initrd start_addr=0x%x pgcnt=%d\n", 
+		imem->start_addr, imem->pgcnt));
 
 	return 0;
 }
 
-/* = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = */
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 VOID
 sysdeps_free_boot_params(boot_params_t *bp)
 {
@@ -398,8 +156,6 @@ sysdeps_free_boot_params(boot_params_t *bp)
 	free_memmap(&md);
 }
 
-/* = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = */
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 /*
  * IA-32 specific boot parameters initialization routine
  */
@@ -423,9 +179,11 @@ sysdeps_create_boot_params(
 		ERR_PRT((L"bp=0x%x  cmdline=0x%x  initrd=0x%x cookie=0x%x",
 			bp, cmdline, initrd, cookie));
 
-		free(param_start);
-		param_start = NULL;
-		param_size = 0;
+		if (param_start != NULL) {
+			free(param_start);
+			param_start = NULL;
+			param_size = 0;
+		}
 		free_kmem();
 		return -1;
 	}
@@ -436,29 +194,27 @@ sysdeps_create_boot_params(
 	 * the first two sectors (1K).  The rest of the storage
 	 * can be used by the command line.
 	 */
-
-	CopyMem(bp, param_start, 0x2000);
-
-	free(param_start);
-	param_start = NULL;
-	param_size = 0;
-
+	if (param_start != NULL) {
+		CopyMem(bp, param_start, 0x2000);
+		free(param_start);
+		param_start = NULL;
+		param_size = 0;
+	}
 	/*
 	 * Save off our header revision information.
 	 */
-
 	hdr_version = (bp->s.hdr_major << 8) | bp->s.hdr_minor;
 
 	/*
 	 * Clear out unused memory in boot sector image.
 	 */
-
 	bp->s.unused_1 = 0;
 	bp->s.unused_2 = 0;
 	ZeroMem(bp->s.unused_3, sizeof bp->s.unused_3);
 	ZeroMem(bp->s.unused_4, sizeof bp->s.unused_4);
 	ZeroMem(bp->s.unused_5, sizeof bp->s.unused_5);
 	bp->s.unused_6 = 0;
+	bp->s.unused_7 = 0;
 
 	/*
 	 * Tell kernel this was loaded by an advanced loader type.
@@ -475,6 +231,12 @@ sysdeps_create_boot_params(
 	bp->s.cmdline_magik = CMDLINE_MAGIK;
 	bp->s.cmdline_offset = (UINT8 *)cmdline - (UINT8 *)bp;
 
+	/* 
+	 * Clear out the cmdline_addr field so the kernel can find 
+	 * the cmdline.
+	 */
+	bp->s.cmdline_addr = 0x0;
+
 	/*
 	 * Setup hard drive parameters.
 	 * %%TBD - It should be okay to zero fill the hard drive
@@ -484,28 +246,16 @@ sysdeps_create_boot_params(
 	ZeroMem(bp->s.hd0_info, sizeof bp->s.hd0_info);
 	ZeroMem(bp->s.hd1_info, sizeof bp->s.hd1_info);
 
-#if 0
-	CopyMem(bp->s.hd0_info, *((VOID **)(0x41 * 4)),
-		sizeof bp->s.hd0_info);
-
-	CopyMem(bp->s.hd1_info, *((VOID **)(0x46 * 4)),
-		sizeof bp->s.hd1_info);
-#endif
-
 	/*
 	 * Memory info.
 	 */
 
 	bp->s.alt_mem_k = high_ext_mem / 1024;
 
-	if (bp->s.alt_mem_k <= 65535) {
+	if (bp->s.alt_mem_k <= 65535) 
 		bp->s.ext_mem_k = (UINT16)bp->s.alt_mem_k;
-	} else {
+	else 
 		bp->s.ext_mem_k = 65535;
-	}
-
-	if (hdr_version < 0x0202)
-		bp->s.base_mem_size = high_base_mem;
 
 	/*
 	 * Initial RAMdisk and root device stuff.
@@ -525,24 +275,17 @@ sysdeps_create_boot_params(
 		/*
 		 * This is the RAMdisk root device for RedHat 2.2.x
 		 * kernels (major 0x01, minor 0x00).
-		 * %%TBD - Will this work for other distributions and
-		 * 2.3.x and 2.4.x kernels?  I do not know, yet.
 		 */
 
 		bp->s.orig_root_dev = 0x0100;
 	} else {
 		bp->s.initrd_start = 0;
 		bp->s.initrd_size = 0;
-
-		/* Do not change the root device if there is no RAMdisk. */
-		/* bp->s.orig_root_dev = 0; */
 	}
 
 	/*
 	 * APM BIOS info.
 	 */
-
-/* %%TBD - How to do Int 15h calls to get this info? */
 	bp->s.apm_bios_ver = NO_APM_BIOS;
 	bp->s.bios_code_seg = 0;
 	bp->s.bios_entry_point = 0;
@@ -555,29 +298,22 @@ sysdeps_create_boot_params(
 	/*
 	 * MCA BIOS info (misnomer).
 	 */
-
-/* %%TBD - How to do Int 15h call to get this info? */
 	bp->s.mca_info_len = 0;
 	ZeroMem(bp->s.mca_info_buf, sizeof bp->s.mca_info_buf);
 
 	/*
-	 * Pointing device presence.
+	 * Pointing device presence.  The kernel will detect this.
 	 */
-
-/* %%TBD - How to do Int 11h call to get this info? */
 	bp->s.aux_dev_info = NO_MOUSE;
 
 	/*
-	 * EFI loader signature and address of EFI system table.
+	 * EFI loader signature 
 	 */
-
 	CopyMem(bp->s.efi_loader_sig, EFI_LOADER_SIG, 4);
-	bp->s.efi_sys_tbl = 0; /* %%TBD */
 
 	/*
 	 * Kernel entry point.
 	 */
-
 	bp->s.kernel_start = (UINT32)kernel_start;
 
 	/*
@@ -587,6 +323,7 @@ sysdeps_create_boot_params(
 	 *   arch/i386/boot/bootsect.S
 	 *   arch/i386/boot/setup.S
 	 *   arch/i386/kernel/setup.c
+	 *   include/asm-i386/setup.h (2.5/2.6)
 	 */
 
 #define CHECK_OFFSET(n, o, f) \
@@ -610,7 +347,6 @@ sysdeps_create_boot_params(
 		; \
 	} \
 }
-
 	{
 		UINTN test = 0;
 
@@ -688,7 +424,7 @@ sysdeps_create_boot_params(
 		CHECK_OFFSET(initrd_size, 0x21C, L"%xh");
 		CHECK_OFFSET(bootsect_helper, 0x220, L"%xh");
 		CHECK_OFFSET(heap_end_ptr, 0x224, L"%xh");
-		CHECK_OFFSET(base_mem_size, 0x226, L"%xh");
+		CHECK_OFFSET(cmdline_addr, 0x228, L"%xh");
 
 		if (test) {
 			ERR_PRT((L"Boot sector and/or setup parameter alignment error."));
@@ -711,7 +447,6 @@ sysdeps_create_boot_params(
 
 	if (EFI_ERROR(efi_status)) {
 		ERR_PRT((L"QueryMode failed.  Fake it."));
-
 		mode = 3;
 		rows = 25;
 		cols = 80;
@@ -730,12 +465,10 @@ sysdeps_create_boot_params(
 	bp->s.orig_video_cols = (UINT8)cols;
 	bp->s.orig_video_rows = (UINT8)rows;
 
-/* %%TBD - How to do Int 10h calls to get video info? */
 	bp->s.orig_ega_bx = 0;
 	bp->s.is_vga = 0;
-	bp->s.orig_video_points = 0;
+	bp->s.orig_video_points = 16; 
 
-/* %%TBD - How to do Int 10h calls to get frame buffer info? */
 	bp->s.lfb_width = 0;
 	bp->s.lfb_height = 0;
 	bp->s.lfb_depth = 0;
@@ -763,7 +496,6 @@ sysdeps_create_boot_params(
 		free_kmem();
 		return -1;
 	}
-
 	*cookie = mdesc.cookie;
 	bp->s.efi_mem_map = (UINTN)mdesc.md;
 	bp->s.efi_mem_map_size = mdesc.map_size;
@@ -771,28 +503,5 @@ sysdeps_create_boot_params(
 	bp->s.efi_mem_desc_ver = mdesc.desc_version;
 	bp->s.efi_sys_tbl = (UINTN)systab;
 	
-	/*
-	 * my_ia32_boot_params and get ready to slap them into 0x00104c00
-	 */
-
-	efi_ia32_bp.size= sizeof(efi_ia32_bp);
-	efi_ia32_bp.command_line = (UINT32) cmdline;
-	efi_ia32_bp.efi_sys_tbl = bp->s.efi_sys_tbl;
-	efi_ia32_bp.efi_mem_map = bp->s.efi_mem_map;
-	efi_ia32_bp.efi_mem_map_size = bp->s.efi_mem_map_size;
-	efi_ia32_bp.efi_mem_desc_size = bp->s.efi_mem_desc_size;
-	efi_ia32_bp.efi_mem_desc_version = bp->s.efi_mem_desc_ver;
-	efi_ia32_bp.initrd_start = (UINTN)initrd->start_addr;
-	efi_ia32_bp.initrd_size = initrd->pgcnt * EFI_PAGE_SIZE;
-	efi_ia32_bp.loader_start = 0;
-	efi_ia32_bp.loader_size = 0;
-	efi_ia32_bp.kernel_start = bp->s.kernel_start;
-	efi_ia32_bp.kernel_size = kernel_size;
-	efi_ia32_bp.num_cols = cols;
-	efi_ia32_bp.num_rows = rows;
-	efi_ia32_bp.orig_x = col;
-	efi_ia32_bp.orig_y = row;
-
-
 	return 0;
 }

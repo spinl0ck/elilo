@@ -28,7 +28,7 @@ include ../Make.rules
 
 TOPDIR=$(CDIR)/..
 
-FILES=system.o config.o
+FILES=system.o config.o bzimage.o plain_loader.o gzip_loader.o gzip.o
 
 TARGET=sysdeps.o
 
