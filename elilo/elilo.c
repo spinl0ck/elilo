@@ -607,11 +607,19 @@ efi_main (EFI_HANDLE image, EFI_SYSTEM_TABLE *system_tab)
 	 * if there was an error when parsing the config file, then
 	 * we force interactive mode to give a chance to the user.
 	 * We also clear the error. 
-	 */
-	if (ret && argc == 1) {
-		Print(L"forcing interactive mode because of errors\n");
+         */
+	if (ret != EFI_SUCCESS) {
+		Print(L"forcing interactive mode due to config file error(s)\n");
 		elilo_opt.prompt = 1;
 	}
+        /*
+	 * However, if the user specified a kernel on the command line
+	 * then we don't go to interactive mode, even if there was an option in
+         * the config file telling us to do so.
+	 */
+	if (argc > Optind) {
+            elilo_opt.prompt = 0;
+        }
 
 	/*
 	 * If EDD30 EFI variable was not set to TRUE (or not defined), we
@@ -627,13 +635,6 @@ efi_main (EFI_HANDLE image, EFI_SYSTEM_TABLE *system_tab)
 
 	ret = EFI_LOAD_ERROR;
 
-	/*
-	 * if the user specified a kernel on the command line
-	 * then we don't go to interactive mode even if it
-	 * was set in the config file or set because of an
-	 * error parsing the config file.
-	 */
-	if (argc > Optind) elilo_opt.prompt = 0;
 
 
 	/* set default timeout if going interactive */
