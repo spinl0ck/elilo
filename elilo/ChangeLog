@@ -1,3 +1,11 @@
+2004-02-19 Brett Johnson <brett@hp.com>
+        * Fixed bug where default image initrd would carry over to another
+          image that was selected interactively (iff the newly selected image
+          did not have an initrd).
+        * Added support for subnet-specific config files in netfs.
+2004-02-17 Brett Johnson <brett@hp.com>
+	* integrated ia32 compressed kernel support from Matt Tolentino
+          <matthew.e.tolentino@intel.com>
 2003-08-20 Stephane Eranian <eranian@hpl.hp.com>
 	* released 3.4
 2003-08-19 Stephane Eranian <eranian@hpl.hp.com>
