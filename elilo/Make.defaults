@@ -121,7 +121,8 @@ CFLAGS += -mfixed-range=f32-f127
 else
  ifeq ($(ARCH),ia32)
   prefix	= 
-  CC		= $(prefix)gcc3
+#  CC		= $(prefix)gcc3
+  CC		= $(prefix)gcc
   AS		= $(prefix)as
   LD		= $(prefix)ld
   AR		= $(prefix)ar
