@@ -391,22 +391,22 @@ fops_setdefaults(struct config_file *defconf, CHAR16 *kname, UINTN maxlen, CHAR1
                 boot_dev->fops->setdefaults(boot_dev->fops->intf, defconf, kname, maxlen, devpath);
         }
         i=0; while (i<MAX_DEFAULT_CONFIGS && defconf[i].fname[0] != CHAR_NULL) i += 1;
-//#ifdef ELILO_DEBUG
+#ifdef ELILO_DEBUG
         if ((i+3) >= MAX_DEFAULT_CONFIGS) {
             Print(L"ERROR: i = %d, MAX_DEFAULT_CONFIGS is not large enough\n", i);
             return EFI_INVALID_PARAMETER;
         }
-//#endif
+#endif
         StrnCpy(defconf[i].fname, FILEOPS_ARCH_DEFAULT_CONFIG, maxlen-1);
         StrnCpy(defconf[i+1].fname, FILEOPS_DEFAULT_CONFIG, maxlen-1);
 
-//#ifdef ELILO_DEBUG
+#ifdef ELILO_DEBUG
         VERB_PRT(3,Print(L"Default config filename list:\n"));
         for (i=0; i<MAX_DEFAULT_CONFIGS; i++) {
                 if (defconf[i].fname[0] == CHAR_NULL) { break; }
                         VERB_PRT(3,Print(L"\t%s\n", defconf[i].fname));
         }
-//#endif
+#endif
         
 	return EFI_SUCCESS;
 }
