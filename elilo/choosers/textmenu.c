@@ -414,14 +414,14 @@ restart:
 	if (label[0])
 		ret = find_label(label, kname, args, initrd_name);
 	else
-		ret = find_label(argv[index], kname, args, initrd_name);
+		ret = find_label((index < argc) ? argv[index] : NULL, kname, args, initrd_name);
 
 	/*
 	 * not found, so assume first argument is kernel name and
 	 * not label name 
 	 */
 	if (ret == -1) {
-		if (argv[index]) 
+		if ((index < argc) && argv[index]) 
 			StrCpy(kname, argv[index]);
 		else
 			StrCpy(kname, elilo_opt.default_kernel);
