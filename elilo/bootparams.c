@@ -69,6 +69,7 @@ create_boot_params(CHAR16 *args, memdesc_t *initrd, UINTN *cookie)
 	 * Allocate memory for boot parameters.
 	 * This CANNOT be EfiLoaderData or EfiLoaderCode as the kernel
 	 * frees this region when initializing.
+	 * FIXME:  Is this a bug?  (since the memory type *is* EfiLoaderData)
 	 */
 
 	bp = (boot_params_t *)alloc(BOOT_PARAM_MEMSIZE, EfiLoaderData);
