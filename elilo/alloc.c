@@ -129,7 +129,7 @@ alloc_pages(UINTN pgcnt, EFI_MEMORY_TYPE type, EFI_ALLOCATE_TYPE where, VOID *ad
 
 	status = BS->AllocatePages(where, type , pgcnt, &tmp);
     	if (EFI_ERROR(status)) {
-        	ERR_PRT((L"allocator: AllocatePages(%d, %d, %d, 0x%lx) failed (%r)\n", where, type, pgcnt, tmp, status));
+        	VERB_PRT(1, (L"allocator: AllocatePages(%d, %d, %d, 0x%lx) failed (%r)\n", where, type, pgcnt, tmp, status));
 		return NULL;
     	}
 	/* XXX: will cause warning on IA-32 */
@@ -155,7 +155,7 @@ free(VOID *addr)
 		if (p->addr == addr) goto found;
 	}
 	/* not found */
-        ERR_PRT((L"allocator: invalid free @ 0x%lx\n", addr));
+        VERB_PRT(1, (L"allocator: invalid free @ 0x%lx\n", addr));
 	return;	
 found:
         DBG_PRT((L"free: %s @0x%lx size=%ld\n", 

@@ -433,7 +433,7 @@ first_block (const char *buf, long blocksize)
 	if (alloc_kmem((void *)low_addr, pages) == -1) {
 		VOID *new_addr;
 
-		ERR_PRT((L"%s : AllocatePages(%d, 0x%lx) for kernel failed\n", LD_NAME, pages, low_addr));
+		VERB_PRT(1, (L"%s : AllocatePages(%d, 0x%lx) for kernel failed\n", LD_NAME, pages, low_addr));
 
 		if (ia64_can_relocate() == 0) {
 			ERR_PRT((L"relocation is disabled, cannot load kernel"));
@@ -458,7 +458,7 @@ first_block (const char *buf, long blocksize)
 		/* unsigned arithmetic */
                 load_offset = (UINTN) (new_addr - ROUNDDOWN((UINTN) low_addr,256*MB));
 
-		ERR_PRT((L"low_addr=0x%lx new_addr=0x%lx offset=0x%lx", low_addr, new_addr, load_offset));
+		VERB_PRT(1, (L"low_addr=0x%lx new_addr=0x%lx offset=0x%lx", low_addr, new_addr, load_offset));
 
 		/*
 		 * correct various addresses for non-zero load_offset
