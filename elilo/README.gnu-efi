@@ -1,0 +1,31 @@
+
+                   IMPORTANT Information related to the gnu-efi package
+                   ----------------------------------------------------
+		                        August 2003
+
+As of version elilo-3.0, the gnu-efi package is now split in two different packages:
+
+	-> gnu-efi-X.y: contains the EFI library, header, files, and crt0.
+
+	-> elilo-X.y  : contains the ELILO bootloader.
+	
+Note that X.y don't need to match for both packages. However elilo-3.x requires at
+least gnu-efi >= 3.0. When using a version of gcc >3.0 you MUST use at least gnu-efi-3.0a.
+
+IMPORTANT NOTE FOR IA-32:
+-------------------------
+	For IA-32, the Redhat 8.0 toolchain is known to produce
+	working binaries when used with gnu-efi-3.0a + loader
+	script patch which is included in the gnu-efi-3.0a-ia32.patch
+	in this package. The toolchain includes:
+
+	gcc: gcc version 3.2 20020903 (Red Hat Linux 8.0 3.2-7)
+	as: GNU assembler version 2.13.90.0.2 (i386-redhat-linux) using BFD version
+	2.13.90.0.2 20020802
+	ld: GNU ld version 2.13.90.0.2 20020802
+
+	The Redhat 9.0 toolchain does not work at the moment.
+
+The gnu-efi  package can be downloaded from:
+
+	ftp://ftp.hpl.hp.com/pub/linux-ia64/gnu-efi-X.y.tar.gz
