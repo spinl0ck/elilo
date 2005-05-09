@@ -78,6 +78,7 @@ setjmp:
 
 	/* __sigsetjmp(__jmp_buf buf, int savemask) */
 
+	.proc __sigsetjmp
 __sigsetjmp:
 	//.prologue ASM_UNW_PRLG_RP|ASM_UNW_PRLG_PFS, ASM_UNW_PRLG_GRSAVE(2)
 	alloc loc1=ar.pfs,2,2,2,0
