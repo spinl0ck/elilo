@@ -135,3 +135,20 @@ sysdeps_initrd_get_addr(kdesc_t *kd, memdesc_t *imem)
 	return 0;
 }
 
+/* Flush data cache [addr; addr + len], and sync with icache.  */
+void
+flush_dcache (CHAR8 *addr, UINT64 len)
+{
+  	/* Cache line length is at least 32.  */
+	UINT64 a = (UINT64)addr & ~0x1f;
+
+	VERB_PRT(3, Print(L"Flush 0x%lx-", a));
+
+	/* Flush data.  */
+	for (len = (len + 31) & ~0x1f; len > 0; len -= 0x20, a += 0x20)
+		asm volatile ("fc %0" : : "r" (a));
+	/* Sync and serialize.  Maybe extra.  */
+	asm volatile (";; sync.i;; srlz.i;;");
+
+	VERB_PRT(3, Print(L"0x%lx\n", a));
+}

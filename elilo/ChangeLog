@@ -1,3 +1,8 @@
+2005-09-15 Brett Johnson <brett@hp.com>
+	* Applied patch from Tristan Gingold to add dcache flush and sync with
+	  icache to gzip and plain loaders.  This ommision was just noticed now
+	  due to the much larger caches in Montecito, and the smaller size of
+	  Xen (as compared to the linux kernel).
 2004-09-27 Brett Johnson <brett@hp.com>
 	* Increase the hardcoded size of the texmenu chooser menu from 16 to 64
 2004-09-23 Brett Johnson <brett@hp.com>

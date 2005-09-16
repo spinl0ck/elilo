@@ -387,6 +387,8 @@ load_elf(fops_fd_t fd, kdesc_t *kd)
 		ret = read_file(fd, filesz, (CHAR8 *)phdrs[i].p_paddr);
 		if (ret == ELILO_LOAD_ABORTED) goto load_abort;
 		if (ret == ELILO_LOAD_ERROR) goto out;
+		if (bswap32(phdrs[i].p_flags) & PF_X)
+		  	flush_dcache ((CHAR8 *)phdrs[i].p_paddr, filesz);
 
 		/*
 		 * update file position

@@ -68,6 +68,7 @@ typedef struct segment {
 
 #define CHUNK_FL_VALID		0x1
 #define CHUNK_FL_LOAD		0x2
+#define CHUNK_FL_X		0x4
 
 #define CHUNK_CAN_LOAD(n)	chunks[(n)].flags |= CHUNK_FL_LOAD
 #define CHUNK_NO_LOAD(n)	chunks[(n)].flags &= ~CHUNK_FL_LOAD
@@ -391,6 +392,9 @@ first_block (const char *buf, long blocksize)
 			continue;
 		}
 
+		if (bswap32(phdrs[i].p_flags) & PF_X)
+			chunks[i].flags |= CHUNK_FL_X;
+
 		CHUNK_CAN_LOAD(i); /* mark no load chunk */
 
 		VERB_PRT(3, 
@@ -566,6 +570,8 @@ tail:
 	if (cnt > outcnt) cnt = outcnt;
 
 	Memcpy(dst, src, cnt);
+	if (cp->flags & CHUNK_FL_X)
+		flush_dcache (dst, cnt);
 
 	file_offset += cnt;
 	outcnt      -= cnt;

@@ -43,7 +43,7 @@ load_initrd(CHAR16 *filename, memdesc_t *initrd)
 	EFI_STATUS status;
 	VOID *start_addr = initrd->start_addr;
 	UINTN pgcnt;
-	UINT64 size;
+	UINT64 size = 0;
 	fops_fd_t fd;
 	INTN ret  = ELILO_LOAD_ERROR;
 	

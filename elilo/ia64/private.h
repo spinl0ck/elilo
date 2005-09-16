@@ -31,5 +31,7 @@ extern INTN query_fpswa(VOID **);
 
 extern INTN ia64_can_relocate();
 
+extern void flush_dcache (CHAR8 *addr, UINT64 len);
+
 #endif /* __ELILO_PRIVATE_IA64_H__ */
 
