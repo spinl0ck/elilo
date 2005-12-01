@@ -81,6 +81,7 @@ typedef struct {
 	UINTN delay;		/* delay before booting the image */
 	UINTN verbose;		/* verbosity level [1-5] */
 	CHAR16 initrd[FILENAME_MAXLEN];		/* name of file for initial ramdisk */
+	CHAR16 vmcode[FILENAME_MAXLEN];	/* name of file for boot time module*/
 	UINT8 delay_set;	/* mark whether or not delay was specified on cmdline */
 	UINT8 edd30_on;		/* true is EDD30 variable is TRUE */
 	UINT8 edd30_no_force;	/* don't force EDD30 variable to true */
@@ -170,7 +171,7 @@ extern VOID U2ascii(CHAR16 *, CHAR8 *, UINTN);
 /* from config.c (more in config.h) */
 extern EFI_STATUS read_config(CHAR16 *);
 extern VOID print_config_options(VOID);
-extern INTN find_label(CHAR16 *, CHAR16 *, CHAR16 *, CHAR16 *);
+extern INTN find_label(CHAR16 *, CHAR16 *, CHAR16 *, CHAR16 *, CHAR16 *);
 extern VOID print_label_list(VOID);
 extern INTN config_init(VOID);
 extern CHAR16 *get_message_filename(INTN which);
@@ -179,13 +180,13 @@ extern VOID *get_next_description(VOID *prev, CHAR16 **label, CHAR16 **descripti
 extern CHAR16 *get_config_file(VOID);
 
 /* from initrd.c */
-extern INTN load_initrd(CHAR16 *, memdesc_t *);
+extern INTN load_file(CHAR16 *, memdesc_t *);
 
 /* from alternate.c */
 extern INTN alternate_kernel(CHAR16 *, INTN);
 
 /* from bootparams.c */
-extern VOID *create_boot_params (CHAR16 *, memdesc_t *, UINTN *);
+extern VOID *create_boot_params (CHAR16 *, memdesc_t *, memdesc_t *, UINTN *);
 extern VOID free_boot_params(VOID *bp);
 
 /*
@@ -193,7 +194,7 @@ extern VOID free_boot_params(VOID *bp);
  */
 
 
-extern INTN sysdeps_create_boot_params(boot_params_t *, CHAR8 *, memdesc_t *, UINTN *);
+extern INTN sysdeps_create_boot_params(boot_params_t *, CHAR8 *, memdesc_t *, memdesc_t *, UINTN *);
 extern VOID sysdeps_free_boot_params(boot_params_t *);
 extern INTN sysdeps_init(EFI_HANDLE dev);
 extern INTN sysdeps_initrd_get_addr(kdesc_t *, memdesc_t *);

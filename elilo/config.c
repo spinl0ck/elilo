@@ -68,6 +68,7 @@ typedef struct boot_image {
 	CHAR16	kname[FILENAME_MAXLEN];
 	CHAR16  options[MAX_STRING];
 	CHAR16	initrd[FILENAME_MAXLEN];
+	CHAR16	vmcode[FILENAME_MAXLEN];
 	CHAR16	root[FILENAME_MAXLEN];
 	CHAR16	fallback[MAX_STRING];
 	CHAR16	description[MAX_STRING];
@@ -93,6 +94,7 @@ typedef enum {
 typedef struct {
 	CHAR16		root[FILENAME_MAXLEN];	/* globally defined root fs */
 	CHAR16		initrd[FILENAME_MAXLEN];/* globally defined initrd  */
+	CHAR16		vmcode[FILENAME_MAXLEN];/* globally defined boot-time module  */
 	CHAR16		options[MAX_STRING];
 	CHAR16		default_image_name[MAX_STRING];
 	CHAR16		message_file[MAX_MESSAGES][FILENAME_MAXLEN]; 
@@ -144,6 +146,7 @@ static config_option_t global_common_options[]={
 {OPT_BOOL,	OPT_GLOBAL,	L"noedd30",	NULL,		NULL,			&global_config.edd30_no_force},
 {OPT_CMD,	OPT_GLOBAL,	L"append",	NULL,		NULL,			global_config.options},
 {OPT_FILE,	OPT_GLOBAL,	L"initrd",	NULL,		NULL,			global_config.initrd},
+{OPT_FILE,	OPT_GLOBAL,	L"vmm",		NULL,		NULL,			global_config.vmcode},
 {OPT_FILE,	OPT_GLOBAL,	L"image",	do_image,	NULL,			opt_offsetof(kname)},
 {OPT_BOOL,	OPT_GLOBAL,	L"checkalt",	NULL,		NULL,			&global_config.alt_check},
 {OPT_STR,	OPT_GLOBAL,	L"chooser",	NULL,		check_chooser,		global_config.chooser},
@@ -168,6 +171,7 @@ static config_option_t image_common_options[]={
     {OPT_CMD,	OPT_IMAGE,	L"append",	do_options,	NULL,	opt_offsetof(options)},
     {OPT_CMD,	OPT_IMAGE,	L"literal",	do_literal,	NULL,	NULL},
     {OPT_FILE,	OPT_IMAGE,	L"initrd",	NULL,		NULL,	opt_offsetof(initrd)},
+    {OPT_FILE,	OPT_IMAGE,	L"vmm",		NULL,		NULL,	opt_offsetof(vmcode)},
     {OPT_STR,	OPT_IMAGE,	L"label",	NULL,		NULL,	opt_offsetof(label)},
     {OPT_FILE,	OPT_IMAGE,	L"image",	do_image,	NULL,	opt_offsetof(kname)},
     {OPT_STR,	OPT_IMAGE,	L"description",	NULL,		NULL,	opt_offsetof(description)},
@@ -933,7 +937,7 @@ find_description(CHAR16 *label)
 }
 
 INTN
-find_label(CHAR16 *label, CHAR16 *kname, CHAR16 *options, CHAR16 *initrd)
+find_label(CHAR16 *label, CHAR16 *kname, CHAR16 *options, CHAR16 *initrd, CHAR16 *vmcode)
 {
 	boot_image_t *img;
 
@@ -966,6 +970,7 @@ find_label(CHAR16 *label, CHAR16 *kname, CHAR16 *options, CHAR16 *initrd)
 	if (global_config.readonly) StrCat(options, L" ro");
 
 	if (global_config.initrd[0]) StrCpy(initrd, global_config.initrd);
+	if (global_config.vmcode[0]) StrCpy(vmcode, global_config.vmcode);
 
 	/* make sure we don't get garbage here */
 	elilo_opt.sys_img_opts = NULL;
@@ -1003,12 +1008,17 @@ found:
 	else if (global_config.initrd[0])
 		StrCpy(initrd, global_config.initrd);
 
+	if (img->vmcode[0]) 
+		StrCpy(vmcode, img->vmcode);
+	else if (global_config.vmcode[0])
+		StrCpy(vmcode, global_config.vmcode);
+
 	/*
 	 * point to architecture dependent options for this image
 	 */
 	elilo_opt.sys_img_opts = &img->sys_img_opts;
 
-	DBG_PRT((L"label %s: kname=%s options=%s initrd=%s", img->label, kname, options, initrd));
+	DBG_PRT((L"label %s: kname=%s options=%s initrd=%s vmcode=%s", img->label, kname, options, initrd, vmcode));
 
 	return 0;
 }

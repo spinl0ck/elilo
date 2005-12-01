@@ -34,6 +34,7 @@
 
 #include "elilo.h"
 #include "vars.h"
+#include "gzip.h"
 
 #include "getopt.h"
 #include "fileops.h"
@@ -84,13 +85,23 @@ do_kernel_load(CHAR16 *kname, kdesc_t *kd)
 }
 
 INTN
-kernel_load(EFI_HANDLE image, CHAR16 *kname, kdesc_t *kd, memdesc_t *imem)
+kernel_load(EFI_HANDLE image, CHAR16 *kname, kdesc_t *kd, memdesc_t *imem, memdesc_t *mmem)
 {
+	CHAR16 kernel[CMDLINE_MAXLEN];
 
+	/*
+	 * Do the vm image switch here
+	 * if there is "vmm=" then elilo should load image specified
+	 * in "vmm=" and then give the "image" to vmm as target kernel image
+	 */
+	if (elilo_opt.vmcode[0])
+		StrCpy(kernel, elilo_opt.vmcode);
+	else
+		StrCpy(kernel, kname);
 	/*
 	 * Now let's try to load the kernel !
 	 */
-	switch(do_kernel_load(kname, kd)) {
+	switch(do_kernel_load(kernel, kd)) {
 		case ELILO_LOAD_SUCCESS:
 			break;
 
@@ -101,6 +112,7 @@ kernel_load(EFI_HANDLE image, CHAR16 *kname, kdesc_t *kd, memdesc_t *imem)
 		case ELILO_LOAD_ABORTED:
 			/* we drop initrd in case we aborted the load */
 			elilo_opt.initrd[0] = CHAR_NULL;
+			elilo_opt.vmcode[0] = CHAR_NULL;
 
 			/* will go back to interactive selection */
 			elilo_opt.prompt  = 1; 
@@ -117,7 +129,7 @@ kernel_load(EFI_HANDLE image, CHAR16 *kname, kdesc_t *kd, memdesc_t *imem)
 
 		if (sysdeps_initrd_get_addr(kd, imem) == -1) goto exit_error;
 
-		switch(load_initrd(elilo_opt.initrd, imem)) {
+		switch(load_file(elilo_opt.initrd, imem)) {
 			case ELILO_LOAD_SUCCESS:
 				break;
 			case ELILO_LOAD_ERROR:
@@ -126,6 +138,7 @@ kernel_load(EFI_HANDLE image, CHAR16 *kname, kdesc_t *kd, memdesc_t *imem)
 				free_kmem();
 				/* we drop initrd in case we aborted the load */
 				elilo_opt.initrd[0] = CHAR_NULL;
+				elilo_opt.vmcode[0] = CHAR_NULL;
 				elilo_opt.prompt    = 1; 
 				elilo_opt.timeout   = ELILO_DEFAULT_TIMEOUT;
 				elilo_opt.delay     = 0;
@@ -133,10 +146,52 @@ kernel_load(EFI_HANDLE image, CHAR16 *kname, kdesc_t *kd, memdesc_t *imem)
 				return ELILO_LOAD_RETRY;
 		}
 	}
+
+	if (elilo_opt.vmcode[0]) {
+
+		mmem->start_addr = 0; /* let the allocator decide */
+
+		switch(load_file(kname, mmem)) {
+			case ELILO_LOAD_SUCCESS:
+				break;
+			case ELILO_LOAD_ERROR:
+				goto exit_error;
+			case ELILO_LOAD_ABORTED:
+				if (imem->start_addr)
+					free(imem->start_addr);
+				free_kmem();
+				/* we drop initrd in case we aborted the load */
+				elilo_opt.initrd[0] = CHAR_NULL;
+				elilo_opt.vmcode[0] = CHAR_NULL;
+				elilo_opt.prompt    = 1; 
+				elilo_opt.timeout   = ELILO_DEFAULT_TIMEOUT;
+				elilo_opt.delay     = 0;
+
+				return ELILO_LOAD_RETRY;
+		}
+
+		/* Test for a compressed image and unzip if found */
+		if (gzip_probe(mmem->start_addr, mmem->size) == 0 &&
+		    gunzip_image(mmem) == ELILO_LOAD_ERROR) {
+			if (imem->start_addr)
+				free(imem->start_addr);
+			free(mmem->start_addr);
+			free_kmem();
+			/* we drop initrd in case we aborted the load */
+			elilo_opt.initrd[0] = CHAR_NULL;
+			elilo_opt.vmcode[0] = CHAR_NULL;
+			elilo_opt.prompt    = 1; 
+			elilo_opt.timeout   = ELILO_DEFAULT_TIMEOUT;
+			elilo_opt.delay     = 0;
+
+			return ELILO_LOAD_RETRY;
+		}
+	}
 	return ELILO_LOAD_SUCCESS;
 exit_error:
 	free_kmem();
 	if (imem->start_addr) free(imem->start_addr);
+	if (mmem->start_addr) free(mmem->start_addr);
 
 	return ELILO_LOAD_ERROR;
 }
@@ -151,7 +206,7 @@ main_loop(EFI_HANDLE dev, CHAR16 **argv, INTN argc, INTN index, EFI_HANDLE image
 	UINTN cookie;
 	EFI_STATUS status = EFI_SUCCESS;
 	kdesc_t kd;
-	memdesc_t imem;
+	memdesc_t imem, mmem;
 	INTN r;
 
 	/*
@@ -168,7 +223,7 @@ main_loop(EFI_HANDLE dev, CHAR16 **argv, INTN argc, INTN index, EFI_HANDLE image
 
 		if (kernel_chooser(argv, argc, index, kname, cmdline_tmp) == -1) goto exit_error;
 
-		switch (kernel_load(image, kname, &kd, &imem)) {
+		switch (kernel_load(image, kname, &kd, &imem, &mmem)) {
 			case ELILO_LOAD_SUCCESS: 
 				goto do_launch;
 			case ELILO_LOAD_ERROR:
@@ -186,7 +241,7 @@ do_launch:
 	close_devices();
 
 	/* No console output permitted after create_boot_params()! */
-	if ((bp=create_boot_params(cmdline, &imem, &cookie)) == 0) goto error;
+	if ((bp=create_boot_params(cmdline, &imem, &mmem, &cookie)) == 0) goto error;
 
 	/* terminate bootservices */
 	status = BS->ExitBootServices(image, cookie);
@@ -220,6 +275,7 @@ elilo_help(VOID)
 	Print(L"-v        verbose level(can appear multiple times)\n");
 	Print(L"-a        always check for alternate kernel image\n");
 	Print(L"-i file   load file as the initial ramdisk\n");
+	Print(L"-m file   load file as additional boot time vmm module\n");
 	Print(L"-C file   indicate the config file to use\n");
 	Print(L"-P        parse config file only (verify syntax)\n");
 	Print(L"-D        enable debug prints\n");
@@ -489,6 +545,13 @@ efi_main (EFI_HANDLE image, EFI_SYSTEM_TABLE *system_tab)
 					goto do_exit;
 				}
 				StrCpy(elilo_opt.initrd, Optarg);
+				break;
+			case 'm':
+				if (StrLen(Optarg) >= FILENAME_MAXLEN-1) {
+					Print(L"vmm module filename is limited to %d characters\n", FILENAME_MAXLEN);
+					goto do_exit;
+				}
+				StrCpy(elilo_opt.vmcode, Optarg);
 				break;
 			case 'C':
 				if (StrLen(Optarg) >= FILENAME_MAXLEN-1) {

@@ -1053,43 +1053,6 @@ makecrc(void)
   crc = (ulg)0xffffffffUL; /* shift register contents */
 }
 
-/* gzip flag byte */
-#define ASCII_FLAG   0x01 /* bit 0 set: file probably ASCII text */
-#define CONTINUATION 0x02 /* bit 1 set: continuation of multi-part gzip file */
-#define EXTRA_FIELD  0x04 /* bit 2 set: extra field present */
-#define ORIG_NAME    0x08 /* bit 3 set: original file name present */
-#define COMMENT      0x10 /* bit 4 set: file comment present */
-#define ENCRYPTED    0x20 /* bit 5 set: file is encrypted */
-#define RESERVED     0xC0 /* bit 6,7:   reserved */
-
-/*
- * check for valid gzip signature
- * return:
- * 	0 : valid gzip archive
- * 	-1: invalid gzip archive
- */
-int
-gzip_probe(uch *buf, unsigned long size)
-{
-	/* FIXME this is wrong here!  FIXME!!!!*/ 
-    if (size < 4) return -1;
-
-    if (buf[0] != 037 ||
-	((buf[1] != 0213) && (buf[1] != 0236))) return -1;
-
-    /* We only support method #8, DEFLATED */
-    if (buf[2] != 8) return -1;
-    
-    if ((buf[3] & ENCRYPTED) != 0) return -1;
-
-    if ((buf[3] & CONTINUATION) != 0) return -1;
-
-    if ((buf[3] & RESERVED) != 0) return -1;
-
-    return 0;
-}
-
-
 /*
  * Do the uncompression!
  */

@@ -39,7 +39,7 @@ extern loader_ops_t plain_loader, gzip_loader;
  * IA-64 specific boot paramters initialization routine
  */
 INTN
-sysdeps_create_boot_params(boot_params_t *bp, CHAR8 *cmdline, memdesc_t *initrd, UINTN *cookie)
+sysdeps_create_boot_params(boot_params_t *bp, CHAR8 *cmdline, memdesc_t *initrd, memdesc_t *vmcode, UINTN *cookie)
 {
 	UINTN cols, rows;
 	SIMPLE_TEXT_OUTPUT_INTERFACE *conout;
@@ -65,6 +65,11 @@ sysdeps_create_boot_params(boot_params_t *bp, CHAR8 *cmdline, memdesc_t *initrd,
 	bp->command_line	= (UINTN)cmdline;
 	bp->initrd_start	= (UINTN) initrd->start_addr;
 	bp->initrd_size		= initrd->size;
+	DBG_PRT((L"Got initrd @ 0x%lx (%d bytes)", initrd->start_addr, initrd->size));
+
+	bp->vmcode_start	= (UINTN) vmcode->start_addr;
+	bp->vmcode_size		= vmcode->size;
+	DBG_PRT((L"Got vmcode @ 0x%lx (%d bytes)", vmcode->start_addr, vmcode->size));
 
 	/* fetch console parameters: */
 	conout = systab->ConOut;

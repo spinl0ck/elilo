@@ -30,6 +30,8 @@
 #include "loader.h"
 #include "gzip.h"
 
+#define LD_NAME L"gzip_ia32"
+
 static INTN
 gzip_probe_format(CHAR16 *kname)
 {

@@ -38,7 +38,7 @@
  * 	bp  : the address of the bootparams otherwise (opaque type)
  */
 VOID *
-create_boot_params(CHAR16 *args, memdesc_t *initrd, UINTN *cookie)
+create_boot_params(CHAR16 *args, memdesc_t *initrd, memdesc_t *vmcode, UINTN *cookie)
 {
 /* 
  * XXX: need cleanup
@@ -96,7 +96,7 @@ create_boot_params(CHAR16 *args, memdesc_t *initrd, UINTN *cookie)
 	 */
 	Memset(bp, 0, BOOT_PARAM_MEMSIZE);
 
-	if (sysdeps_create_boot_params(bp, cp, initrd, cookie) == -1) return 0;
+	if (sysdeps_create_boot_params(bp, cp, initrd, vmcode, cookie) == -1) return 0;
 
 	/*
 	 * Convert kernel command line args from UNICODE to ASCII and put them where

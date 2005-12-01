@@ -37,6 +37,8 @@
 #include "private.h"
 #include "setjmp.h"
 
+#define LD_NAME L"gzip_ia64"
+
 #define memzero(s, n)	Memset((VOID *)(s), 0, (n))
 #define memcpy(a,b,n)	Memcpy((VOID *)(a),(b),(n))
 

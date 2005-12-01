@@ -1,3 +1,16 @@
+2005-12-01 Alex Williamson <alex.williamson@hp.com>
+	* Applied patch from Fred Yang <fred.yang@intel.com> to support the
+	  vmm= boot option.  This option specifies the kernel image for a
+	  virtual machine monitor (aka hypervisor).  The vmm= and image=
+	  options are used together to load both the hypervisor kernel and
+	  the guest domain kernel into memory.  If a vmm= option is not
+	  specified, elilo defaults to the old behavior of loading and booting
+	  to the image= kernel.
+	* Added support for compressed image= files when used with the vmm=
+	  option.  If the image= file is detected to be gzip compressed, the
+	  image will be uncompressed into memory before it is provided to the
+	  hypervisor.  Any combination of compressed and uncompressed images
+	  can be used for the image and vmm options.
 2005-09-15 Brett Johnson <brett@hp.com>
 	* Applied patch from Tristan Gingold to add dcache flush and sync with
 	  icache to gzip and plain loaders.  This ommision was just noticed now

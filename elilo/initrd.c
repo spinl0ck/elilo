@@ -29,7 +29,7 @@
 #include "elilo.h"
 
 /*
- * This function allocates memory for the initial ramdisk (initrd) and loads it to memory
+ * This function allocates memory for file image and loads it to memory
  * OUTPUTS:
  * 	- ELILO_LOAD_SUCCESS: if everything works
  * 	- ELILO_LOAD_ABORTED: in case the user decided to abort loading
@@ -38,10 +38,10 @@
  * Adapted from Bill Nottingham <notting@redhat.com>  patch for ELI.
  */
 INTN
-load_initrd(CHAR16 *filename, memdesc_t *initrd)
+load_file(CHAR16 *filename, memdesc_t *image)
 {
 	EFI_STATUS status;
-	VOID *start_addr = initrd->start_addr;
+	VOID *start_addr = image->start_addr;
 	UINTN pgcnt;
 	UINT64 size = 0;
 	fops_fd_t fd;
@@ -53,46 +53,48 @@ load_initrd(CHAR16 *filename, memdesc_t *initrd)
 	/* Open the file */
 	status = fops_open(filename, &fd);
 	if (EFI_ERROR(status)) {
-		ERR_PRT((L"Open initrd file %s failed: %r", filename, status));
+		ERR_PRT((L"Open file %s failed: %r", filename, status));
 		return -1;
 	}
 
-	DBG_PRT((L"initrd_open %s worked", filename));
+	DBG_PRT((L"open %s worked", filename));
 
 	/* warning: this function allocates memory  */
 	status = fops_infosize(fd, &size);
 	if (EFI_ERROR(status)) {
-		ERR_PRT((L"Couldn't read initrd file %s info %r",filename, status));
+		ERR_PRT((L"Couldn't read file %s info %r", filename, status));
 		goto error;
 	}
 	
-	initrd->size = size;
+	image->size = size;
 
 	/* round up to get required number of pages (4KB) */
-	initrd->pgcnt = pgcnt = EFI_SIZE_TO_PAGES(initrd->size);
+	image->pgcnt = pgcnt = EFI_SIZE_TO_PAGES(image->size);
 
 	start_addr = alloc_pages(pgcnt, EfiLoaderData, start_addr ? AllocateAddress : AllocateAnyPages, start_addr);
 	if (start_addr == NULL) {
-		ERR_PRT((L"Failed to allocate %d pages for initrd", pgcnt));
+		ERR_PRT((L"Failed to allocate %d pages for %s image", pgcnt,
+		         filename));
 		goto error;
 	}
-	VERB_PRT(2, Print(L"initrd: total_size: %ld bytes base: 0x%lx pages %d\n", 
-			initrd->size, (UINTN)start_addr, pgcnt));
+	VERB_PRT(2, Print(L"%s image: total_size: %ld bytes base: 0x%lx "
+	                  "pages %d\n", filename, image->size,
+	                  (UINTN)start_addr, pgcnt));
 
-	Print(L"Loading initrd %s...", filename);
+	Print(L"Loading file %s...", filename);
 
-	ret = read_file(fd, initrd->size, start_addr);	
+	ret = read_file(fd, image->size, start_addr);	
 
 	fops_close(fd);
 
 	if (ret != ELILO_LOAD_SUCCESS) {
-		ERR_PRT((L"read initrd(%s) failed: %d", filename, ret));
+		ERR_PRT((L"read image(%s) failed: %d", filename, ret));
 		goto error;
 	}
 
 	Print(L"done\n");
 
-	initrd->start_addr = start_addr;
+	image->start_addr = start_addr;
 
 	return ELILO_LOAD_SUCCESS;
 
@@ -103,9 +105,9 @@ error:
 	 * make sure nothing is passed to kernel
 	 * in case of error.
 	 */
-	initrd->start_addr = 0;
-	initrd->pgcnt      = 0;
-	initrd->size       = 0;
+	image->start_addr = 0;
+	image->pgcnt      = 0;
+	image->size       = 0;
 
 	return ret;
 }

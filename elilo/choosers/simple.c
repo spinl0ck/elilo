@@ -37,6 +37,7 @@ display_label_info(CHAR16 *name)
 {
 	CHAR16 *desc;
 	CHAR16 initrd_name[CMDLINE_MAXLEN];
+	CHAR16 vmcode_name[CMDLINE_MAXLEN];
 	CHAR16 options_tmp[CMDLINE_MAXLEN];
 	CHAR16 options[CMDLINE_MAXLEN];
 	CHAR16 kname[FILENAME_MAXLEN];
@@ -46,9 +47,9 @@ display_label_info(CHAR16 *name)
 		Print(L"desc   : %s\n", desc);
 	}
 
-	initrd_name[0] = options_tmp[0] = kname[0] = CHAR_NULL;
+	initrd_name[0] = vmcode_name[0] = options_tmp[0] = kname[0] = CHAR_NULL;
 
-	if (find_label(name, kname, options_tmp, initrd_name) == -1) {
+	if (find_label(name, kname, options_tmp, initrd_name, vmcode_name) == -1) {
 		StrCpy(kname, name);
 		Print(L"\n");
 	}
@@ -56,6 +57,7 @@ display_label_info(CHAR16 *name)
 
 	Print(L"cmdline: %s %s\n", kname, options);
 	if (initrd_name[0]) Print(L"initrd : %s\n", initrd_name);
+	if (vmcode_name[0]) Print(L"vmcode : %s\n", vmcode_name);
 }
 
 static VOID
@@ -247,6 +249,7 @@ simple_choose(CHAR16 **argv, INTN argc, INTN index, CHAR16 *kname, CHAR16 *cmdli
 	CHAR16 buffer[CMDLINE_MAXLEN];
 	CHAR16 alt_buffer[CMDLINE_MAXLEN];
 	CHAR16 initrd_name[CMDLINE_MAXLEN];
+	CHAR16 vmcode_name[CMDLINE_MAXLEN];
 	CHAR16 args[CMDLINE_MAXLEN];
 	CHAR16 devname[CMDLINE_MAXLEN];
 	CHAR16 dpath[FILENAME_MAXLEN];
@@ -259,7 +262,7 @@ simple_choose(CHAR16 **argv, INTN argc, INTN index, CHAR16 *kname, CHAR16 *cmdli
 	display_message();
 
 restart:
-	initrd_name[0] = kname[0] = cmdline[0] = args[0] = CHAR_NULL;
+	initrd_name[0] = vmcode_name[0] = kname[0] = cmdline[0] = args[0] = CHAR_NULL;
 
 	/* reset per image loader options */
 	Memset(&elilo_opt.img_opt, 0, sizeof(elilo_opt.img_opt));
@@ -303,7 +306,7 @@ restart:
 	 * if no match is found, the args and initrd arguments may
 	 * still be modified by global options in the config file.
 	 */
-	ret = find_label((index < argc) ? argv[index] : NULL, kname, args, initrd_name);
+	ret = find_label((index < argc) ? argv[index] : NULL, kname, args, initrd_name, vmcode_name);
 
 	/*
 	 * not found, so assume first argument is kernel name and
@@ -335,9 +338,14 @@ restart:
 		StrCpy(elilo_opt.initrd, initrd_name);
 	}
 
+	if (elilo_opt.vmcode[0] == CHAR_NULL && vmcode_name[0] != CHAR_NULL) {
+		StrCpy(elilo_opt.vmcode, vmcode_name);
+	}
+
 	VERB_PRT(1,  { Print(L"kernel     is  '%s'\n", kname);
 		       Print(L"arguments  are '%s'\n", args);
 			if (elilo_opt.initrd[0]) Print(L"initrd      is '%s'\n", elilo_opt.initrd);
+			if (elilo_opt.vmcode[0]) Print(L"vmm         is '%s'\n", elilo_opt.vmcode);
 		      });
 
 	if (elilo_opt.prompt == 0) {
@@ -379,7 +387,8 @@ restart:
 	 */
 	len = StrLen(BOOT_IMG_STR)	/* BOOT_IMAGE= */
 	     +StrLen(devname)		/* device name */
-	     +StrLen(kname)		/* kernel name */
+	     				/* kernel name */
+	     +elilo_opt.vmcode[0] ? StrLen(elilo_opt.vmcode) : StrLen(kname)
 	     +1				/* space */
 	     +StrLen(args);		/* args length */
 
@@ -389,7 +398,10 @@ restart:
 	}
 	StrCpy(cmdline, L"BOOT_IMAGE=");
 	StrCat(cmdline, devname);
-	StrCat(cmdline, kname);
+	if (elilo_opt.vmcode[0])
+		StrCat(cmdline, elilo_opt.vmcode);
+	else
+		StrCat(cmdline, kname);
 	StrCat(cmdline, L" ");
 	StrCat(cmdline, args);
 

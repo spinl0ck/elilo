@@ -164,6 +164,7 @@ sysdeps_create_boot_params(
 	boot_params_t *bp,
 	CHAR8 *cmdline,
 	memdesc_t *initrd,
+	memdesc_t *vmcode, /* no use for ia32 now*/
 	UINTN *cookie)
 {
 	mmap_desc_t mdesc;

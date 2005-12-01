@@ -65,8 +65,11 @@ typedef struct ia64_boot_params {
 	UINTN initrd_start;		/* virtual address where the initial ramdisk begins */
 	UINTN initrd_size;		/* how big is the initial ramdisk */
 
+	UINTN vmcode_start;		/* virtual address where the boot time vmcode begins */
+	UINTN vmcode_size;		/* how big is the boot module */
 	UINTN loader_addr;		/* start address of boot loader */
 	UINTN loader_size;		/* size of loader code & data */
+
 } boot_params_t;
 
 typedef struct sys_img_options {

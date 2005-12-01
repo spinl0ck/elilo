@@ -34,6 +34,8 @@
 #include "gzip.h"
 #include "private.h"
 
+#define LD_NAME L"gzip_ia32"
+
 #define memzero(s, n)	Memset((VOID *)(s), 0, (n))
 #define memcpy(a,b,n)	Memcpy((VOID *)(a),(b),(n))
 
