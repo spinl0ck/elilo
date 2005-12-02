@@ -172,7 +172,7 @@ kernel_load(EFI_HANDLE image, CHAR16 *kname, kdesc_t *kd, memdesc_t *imem, memde
 
 		/* Test for a compressed image and unzip if found */
 		if (gzip_probe(mmem->start_addr, mmem->size) == 0 &&
-		    gunzip_image(mmem) == ELILO_LOAD_ERROR) {
+		    gunzip_image(mmem) != ELILO_LOAD_SUCCESS) {
 			if (imem->start_addr)
 				free(imem->start_addr);
 			free(mmem->start_addr);
