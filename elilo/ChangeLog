@@ -1,3 +1,5 @@
+2005-12-22 Alex Williamson <alex.williamson@hp.com>
+	* Fixed vmcode_name initialization in textmenu chooser
 2005-12-01 Alex Williamson <alex.williamson@hp.com>
 	* Applied patch from Fred Yang <fred.yang@intel.com> to support the
 	  vmm= boot option.  This option specifies the kernel image for a

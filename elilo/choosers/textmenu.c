@@ -383,7 +383,7 @@ textmenu_choose(CHAR16 **argv, INTN argc, INTN index, CHAR16 *kname, CHAR16 *cmd
 		nlabels++;
 	}
 restart:
-	initrd_name[0] = kname[0] = cmdline[0] = args[0] = CHAR_NULL;
+	vmcode_name[0] = initrd_name[0] = kname[0] = cmdline[0] = args[0] = CHAR_NULL;
 
 	/* reset per image loader options */
 	Memset(&elilo_opt.img_opt, 0, sizeof(elilo_opt.img_opt));
@@ -401,7 +401,7 @@ restart:
 	if (elilo_opt.alt_check && alternate_kernel(PromptBuf, sizeof(PromptBuf)) == 0) {
 		argc    = argify(PromptBuf,sizeof(PromptBuf), argv); 
 		index   = 0;
-		label[0] = args[0] = initrd_name[0] = 0;
+		label[0] = args[0] = initrd_name[0] = vmcode_name[0] = 0;
 	}
 
 	/*
