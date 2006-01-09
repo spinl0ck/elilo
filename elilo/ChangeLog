@@ -1,3 +1,5 @@
+2006-01-09 Brett Johnson <brett@hp.com>
+	* Released 3.6
 2005-12-22 Alex Williamson <alex.williamson@hp.com>
 	* Fixed vmcode_name initialization in textmenu chooser
 2005-12-01 Alex Williamson <alex.williamson@hp.com>
