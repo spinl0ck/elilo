@@ -274,7 +274,7 @@ restart:
 		argc     = argify(alt_buffer,sizeof(alt_buffer), argv); 
 		alt_argv = argv;
 		index    = 0;
-		args[0]  = initrd_name[0] = 0;
+		args[0]  = initrd_name[0] = vmcode_name[0] = 0;
 		/* 
 		 * don't check twice because the variable is deleted after
 		 * first access
@@ -354,7 +354,7 @@ restart:
 		ret = wait_timeout(elilo_opt.delay);
 		if (ret != 0) {
 			elilo_opt.prompt = 1;
-			elilo_opt.initrd[0] = CHAR_NULL;
+			elilo_opt.initrd[0] = elilo_opt.vmcode[0] = CHAR_NULL;
 			elilo_opt.timeout =  ELILO_TIMEOUT_INFINITY;
 			goto restart;
 		}

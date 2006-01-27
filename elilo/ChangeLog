@@ -1,3 +1,6 @@
+2006-01-27 Alex Williamson <alex.williamson@hp.com>
+	* Found a couple more places where vmcode isn't zeroed, causing the
+	  option to get carried over to labels it shouldn't.
 2006-01-09 Brett Johnson <brett@hp.com>
 	* Released 3.6
 2005-12-22 Alex Williamson <alex.williamson@hp.com>

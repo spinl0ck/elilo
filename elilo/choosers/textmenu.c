@@ -465,7 +465,7 @@ restart:
 		ret = wait_timeout(elilo_opt.delay);
 		if (ret != 0) {
 			elilo_opt.prompt = 1;
-			elilo_opt.initrd[0] = CHAR_NULL;
+			elilo_opt.initrd[0] = elilo_opt.vmcode[0] = CHAR_NULL;
 			elilo_opt.timeout =  ELILO_TIMEOUT_INFINITY;
 			goto restart;
 		}
