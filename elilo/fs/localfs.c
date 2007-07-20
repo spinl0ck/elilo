@@ -1,6 +1,10 @@
 /*
  *  Copyright (C) 2001-2003 Hewlett-Packard Co.
  *	Contributed by Stephane Eranian <eranian@hpl.hp.com>
+ *  Copyright (C) 2006-2009 Intel Corporation
+ *	Contributed by Fenghua Yu <fenghua.yu@intel.com>
+ *	Contributed by Bibo Mao <bibo.mao@intel.com>
+ *	Contributed by Chandramouli Narayanan <mouli@linux.intel.com>
  *
  * This file is part of the ELILO, the EFI Linux boot loader.
  *
@@ -61,7 +65,7 @@ static EFI_GUID	LocalFsProtocol = LOCALFS_PROTOCOL;
  * let's be clean here
  */
 typedef union {
-	EFI_HANDLE *dev;
+	EFI_HANDLE dev;
 	localfs_t  *intf;
 } dev_tab_t;
 
@@ -94,7 +98,7 @@ localfs_open(localfs_interface_t *this, CHAR16 *name, UINTN *fd)
 
 	DBG_PRT((L"localfs_open on %s\n", name));
 
-	status = lfs->volume->Open(lfs->volume, &fh, name, EFI_FILE_MODE_READ, 0);
+	status = uefi_call_wrapper(lfs->volume->Open, 5, lfs->volume, &fh, name, EFI_FILE_MODE_READ, 0);
 	if (status == EFI_SUCCESS) {
 		*fd = LOCALFS_F2FD(fh);
 	} 
@@ -110,7 +114,7 @@ localfs_read(localfs_interface_t *this, UINTN fd, VOID *buf, UINTN *size)
 
 	lfs = FS_PRIVATE(this);
 
-	return lfs->volume->Read(LOCALFS_FD2F(fd), size, buf);
+	return uefi_call_wrapper(lfs->volume->Read, 3, LOCALFS_FD2F(fd), size, buf);
 }
 
 static EFI_STATUS
@@ -122,7 +126,7 @@ localfs_close(localfs_interface_t *this, UINTN fd)
 
 	lfs = FS_PRIVATE(this);
 
-	return lfs->volume->Close(LOCALFS_FD2F(fd));
+	return uefi_call_wrapper(lfs->volume->Close, 1, LOCALFS_FD2F(fd));
 }
 
 static EFI_STATUS
@@ -140,7 +144,7 @@ localfs_infosize(localfs_interface_t *this, UINTN fd, UINT64 *sz)
 
 	*sz = info->FileSize;
 
-	FreePool(info);
+	uefi_call_wrapper(BS->FreePool, 1, info);
 
 	return EFI_SUCCESS;
 }
@@ -154,7 +158,7 @@ localfs_seek(localfs_interface_t *this, UINTN fd, UINT64 newpos)
 
 	lfs = FS_PRIVATE(this);
 
-	return lfs->volume->SetPosition(LOCALFS_FD2F(fd), newpos);
+	return uefi_call_wrapper(lfs->volume->SetPosition, 2, LOCALFS_FD2F(fd), newpos);
 }
 
 static VOID
@@ -185,16 +189,16 @@ localfs_install_one(EFI_HANDLE dev, VOID **intf)
     	EFI_FILE_IO_INTERFACE	*volume;
 	EFI_FILE_HANDLE		volume_fh;
 
-	status = BS->HandleProtocol (dev, &LocalFsProtocol, (VOID **)&localfs);
+	status = uefi_call_wrapper(BS->HandleProtocol, 3, dev, &LocalFsProtocol, (VOID **)&localfs);
 	if (status == EFI_SUCCESS) {
 		ERR_PRT((L"Warning: found existing %s protocol on device", FS_NAME));
 		goto found;
 	}
 	
-	status = BS->HandleProtocol (dev, &FileSystemProtocol, (VOID **)&volume);
+	status = uefi_call_wrapper(BS->HandleProtocol, 3, dev, &FileSystemProtocol, (VOID **)&volume);
 	if (EFI_ERROR(status)) return EFI_INVALID_PARAMETER;
 
-	status = volume->OpenVolume(volume, &volume_fh);
+	status = uefi_call_wrapper(volume->OpenVolume, 2, volume, &volume_fh);
 	if (EFI_ERROR(status)) {
 		ERR_PRT((L"cannot open volume"));
 		return status;
@@ -221,7 +225,7 @@ found:
 		  dp  = DevicePathFromHandle(dev);
 		  str = DevicePathToStr(dp);
 		  Print(L"attached %s to %s\n", FS_NAME, str);
-		  FreePool(str);
+		  uefi_call_wrapper(BS->FreePool, 1, str);
 		});
 
 	return EFI_SUCCESS;
@@ -235,7 +239,7 @@ localfs_install(VOID)
 	EFI_STATUS status;
 	VOID *intf;
 
-	BS->LocateHandle(ByProtocol, &FileSystemProtocol, NULL, &size, NULL);
+	uefi_call_wrapper(BS->LocateHandle, 5, ByProtocol, &FileSystemProtocol, NULL, &size, NULL);
 	if (size == 0) return EFI_UNSUPPORTED; /* no device found, oh well */
 
 	DBG_PRT((L"size=%d", size));
@@ -245,8 +249,7 @@ localfs_install(VOID)
 		ERR_PRT((L"failed to allocate handle table"));
 		return EFI_OUT_OF_RESOURCES;
 	}
-	
-	status = BS->LocateHandle(ByProtocol, &FileSystemProtocol, NULL, &size, (VOID **)dev_tab);
+	status = uefi_call_wrapper(BS->LocateHandle, 5, ByProtocol, &FileSystemProtocol, NULL, &size, (VOID **)dev_tab);
 	if (status != EFI_SUCCESS) {
 		ERR_PRT((L"failed to get handles: %r", status));
 		free(dev_tab);
@@ -275,7 +278,7 @@ localfs_uninstall(VOID)
 	for(i=0; i < ndev; i++) {
 		if (dev_tab[i].intf == NULL) continue;
 		lfs = FS_PRIVATE(dev_tab[i].intf);
-		status = BS->UninstallProtocolInterface(lfs->dev, &LocalFsProtocol, dev_tab[i].intf);
+		status = uefi_call_wrapper(BS->UninstallProtocolInterface, 3, lfs->dev, &LocalFsProtocol, dev_tab[i].intf);
 		if (EFI_ERROR(status)) {
 			ERR_PRT((L"Uninstall %s error: %r", FS_NAME, status));
 			continue;
@@ -285,7 +288,7 @@ localfs_uninstall(VOID)
 		  	dp  = DevicePathFromHandle(lfs->dev);
 		  	str = DevicePathToStr(dp);
 		  	Print(L"uninstalled %s on %s\n", FS_NAME, str);
-		  	FreePool(str);
+			uefi_call_wrapper(BS->FreePool, 1, str);
 			});
 		free(dev_tab[i].intf);
 	}

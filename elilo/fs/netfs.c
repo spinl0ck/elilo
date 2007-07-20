@@ -1,6 +1,10 @@
 /*
  *  Copyright (C) 2001-2003 Hewlett-Packard Co.
  *	Contributed by Stephane Eranian <eranian@hpl.hp.com>
+ *  Copyright (C) 2006-2009 Intel Corporation
+ *	Contributed by Fenghua Yu <fenghua.yu@intel.com>
+ *	Contributed by Bibo Mao <bibo.mao@intel.com>
+ *	Contributed by Chandramouli Narayanan <mouli@linux.intel.com>
  *
  * This file is part of the ELILO, the EFI Linux boot loader.
  *
@@ -262,7 +266,7 @@ netfs_start(EFI_PXE_BASE_CODE *pxe)
 {
 	EFI_STATUS status;
 
-	status = pxe->Start(pxe, FALSE);
+	status = uefi_call_wrapper(pxe->Start, 2, pxe, FALSE);
 	if (EFI_ERROR(status)) return status;
 
 	return pxe->Dhcp(pxe, FALSE);
@@ -337,7 +341,7 @@ retry:
 	 */
 	prev_netbufsize = f->netbuf_size;
 
-	status = nfs->pxe->Mtftp(nfs->pxe, EFI_PXE_BASE_CODE_TFTP_READ_FILE, f->netbuf, FALSE,
+	status = uefi_call_wrapper(nfs->pxe->Mtftp, 10, nfs->pxe, EFI_PXE_BASE_CODE_TFTP_READ_FILE, f->netbuf, FALSE,
 			    &(f->netbuf_size), 
 			    blocksize > 0 ? &blocksize : NULL, 
 			    &nfs->srv_ip, 
@@ -627,7 +631,7 @@ netfs_query_layer(netfs_interface_t *this, UINT16 server_type, UINT16 layer, UIN
 
 	if (server_type == 0) server_type = find_pxe_server_type(nfs->pxe);
 
-	status = nfs->pxe->Discover(nfs->pxe, server_type, &layer, FALSE, 0);
+	status = uefi_call_wrapper(nfs->pxe->Discover, 5, nfs->pxe, server_type, &layer, FALSE, 0);
 	if(status == EFI_SUCCESS) {
 		ascii2U(nfs->pxe->Mode->PxeReply.Dhcpv4.BootpBootFile, str, maxlen);
 	} 
@@ -680,13 +684,13 @@ netfs_install_one(EFI_HANDLE dev, VOID **intf)
 	netfs_t *netfs;
 	EFI_PXE_BASE_CODE *pxe;
 
-	status = BS->HandleProtocol (dev, &NetFsProtocol, (VOID **)&netfs);
+	status = uefi_call_wrapper(BS->HandleProtocol, 3, dev, &NetFsProtocol, (VOID **)&netfs);
 	if (status == EFI_SUCCESS) {
 		ERR_PRT((L"Warning: found existing %s protocol on device", FS_NAME));
 		goto found;
 	}
 	
-	status = BS->HandleProtocol (dev, &PxeBaseCodeProtocol, (VOID **)&pxe);
+	status = uefi_call_wrapper(BS->HandleProtocol, 3, dev, &PxeBaseCodeProtocol, (VOID **)&pxe);
 	if (EFI_ERROR(status)) return EFI_INVALID_PARAMETER;
 
 
@@ -727,7 +731,7 @@ netfs_install(VOID)
 	EFI_STATUS status;
 	VOID *intf;
 
-	BS->LocateHandle(ByProtocol, &PxeBaseCodeProtocol, NULL, &size, NULL);
+	uefi_call_wrapper(BS->LocateHandle, 5, ByProtocol, &PxeBaseCodeProtocol, NULL, &size, NULL);
 	if (size == 0) return EFI_UNSUPPORTED; /* no device found, oh well */
 
 	DBG_PRT((L"size=%d", size));
@@ -738,7 +742,7 @@ netfs_install(VOID)
 		return EFI_OUT_OF_RESOURCES;
 	}
 	
-	status = BS->LocateHandle(ByProtocol, &PxeBaseCodeProtocol, NULL, &size, (VOID **)dev_tab);
+	status = uefi_call_wrapper(BS->LocateHandle, 5, ByProtocol, &PxeBaseCodeProtocol, NULL, &size, (VOID **)dev_tab);
 	if (status != EFI_SUCCESS) {
 		ERR_PRT((L"failed to get handles: %r", status));
 		free(dev_tab);
@@ -767,7 +771,7 @@ netfs_uninstall(VOID)
 	for(i=0; i < ndev; i++) {
 		if (dev_tab[i].intf == NULL) continue;
 		nfs = FS_PRIVATE(dev_tab[i].intf);
-		status = BS->UninstallProtocolInterface(nfs->dev, &NetFsProtocol, dev_tab[i].intf);
+		status = uefi_call_wrapper(BS->UninstallProtocolInterface, 3, nfs->dev, &NetFsProtocol, dev_tab[i].intf);
 		if (EFI_ERROR(status)) {
 			ERR_PRT((L"Uninstall %s error: %r", FS_NAME, status));
 			continue;
@@ -780,7 +784,8 @@ netfs_uninstall(VOID)
 		  	FreePool(str);
 			});
 
-		if (nfs->pxe->Mode->Started == TRUE) nfs->pxe->Stop(nfs->pxe);
+		if (nfs->pxe->Mode->Started == TRUE) 
+			uefi_call_wrapper(nfs->pxe->Stop, 1, nfs->pxe);
 
 		free(dev_tab[i].intf);
 	}

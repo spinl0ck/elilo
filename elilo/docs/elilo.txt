@@ -1,18 +1,20 @@
 	--------------------------------------------------------------------
-	ELILO.EFI: Linux boot loader for EFI/IA-64 and EFI/IA-32 based systems
+	ELILO.EFI: Linux boot loader for
+			EFI/IA-64,EFI/IA-32 and EFI/x86_64 based systems
 	--------------------------------------------------------------------
 	               Stephane Eranian <eranian@hpl.hp.com>
 
 		                 August 2003
 
 	           Copyright (C) 2000-2003 Hewlett-Packard Co.
+	           Copyright (C) 2006-2010 Intel Co.
 
 
 I/ Introduction
    ------------
 
-This document describes how to use ELILO on for both IA-64 and IA-32 EFI-based platforms.
-This document describes ELILO version 3.4. 
+This document describes how to use ELILO on for IA-64, IA-32 and x86_64 EFI-based platforms.
+This document describes ELILO version 3.7. 
 
 II/ Command line options
     --------------------
@@ -81,6 +83,9 @@ II/ Command line options
 	for more information on device naming schemes. The slash character '/' can be used as 
 	a directory separator on any file systems including the EFI file system (FAT32).
 
+	For x86_64:
+	----------
+	No new options.
 
 III/ Configuration File
      ------------------
@@ -94,7 +99,7 @@ III/ Configuration File
 	   where AABBCCDD is the hexadecimal representation
 	   of the IP address assigned during the DHCP phase.
 
-	2/ elilo-ia64.conf or elilo-ia32.conf
+	2/ elilo-ia64.conf or elilo-ia32.conf or elilo-x86_64.conf
 	   The choice depends on the client platform. This step allows
 	   the same DHCP/PXE server to provide files for both types of clients.
 
@@ -236,6 +241,9 @@ III/ Configuration File
     the user can also specify a kernel file that is not specified in the config file. In any case,
     some of the global options (such as append) are always concatenated to whatever the user type.
 
+    x86_64 specific options:
+    -----------------------
+	None yet.
 
 IV/ Booting from the local system
     -----------------------------
@@ -447,6 +455,29 @@ XII/ Booting on EFI/ia32 platforms
 	be booted (plain vmlinux will not work). Similarly, existing initial ramdisks can 
 	be used without modifications. 
 
+XIII/ Booting on EFI/x86_64 platforms
+     -----------------------------
+
+	To use elilo on x86_64, you can put it on a floppy and
+	on a FAT32 partition (msdos partition). You can also
+	netboot if your network adapter has support for UNDI/PXE.
+
+	Elilo/x86_64 requires efi64 enabled linux kernel (> 2.6.21).
+	You need to compile the kernel with CONFIG_EFI option.
+	x86_64 platforms with UEFI 2.0 firmware deprecate UGA protocol
+	and therefore only the Graphics Output Protocol (GOP) is supported. For
+	such platforms, the kernel must be configured with EFI_FB option. This
+	will enable early boot messages on the console. The elilo for x86_64
+	attempts to query the firmware for GOP and if it fails it defaults to
+	text mode. Elilo ONLY takes compressed kernel image which are
+	typically obtained via a 'make bzImage'. Plain elf/x86_64 kernel can't 
+	be booted (plain vmlinux will not work). Similarly, existing initial
+	ramdisks can be used without modifications. 
+
+	The x86_64 implementation converts the EFI memory map into E820 map and
+	passes it in the bootparameter supplied to the OS. For details on
+	bootparameter, see x86_64/sysdeps.h.
+
 IX/ Credits
     -------
 
@@ -457,6 +488,9 @@ IX/ Credits
 	Richard Hirst    <rhirst@linuxcare.com>
 	Chris Ahna	 <christopher.j.ahna@intel.com>
 	Mike Johnston	 <michael.johnston@intel.com>
+	Fenghua Yu	 <fenghua.yu@intel.com>
+	Bibo Mao	 <bibo.mao@intel.com>
+	Chandramouli Narayanan <mouli@linux.intel.com>
 
 X/ Bug reports
    -----------
@@ -467,6 +501,10 @@ X/ Bug reports
 
 XIII/ Reference
       ---------
+
+	UEFI 2.0 specifications are available from the following web site:
+
+		http://www.uefi.org/home
 
 	EFI v1.02 specifications are available from the following web site:
 

@@ -1,6 +1,7 @@
 /*
  *  Copyright (C) 2001-2003 Hewlett-Packard Co.
  *	Contributed by Stephane Eranian <eranian@hpl.hp.com>
+ *
  *  Copyright (C) 2006-2009 Intel Corporation
  *	Contributed by Fenghua Yu <fenghua.yu@intel.com>
  *	Contributed by Bibo Mao <bibo.mao@intel.com>
@@ -27,15 +28,8 @@
  * to use this program.
  */
 
-#ifndef __ELILO_SYSDEPS_H__
-#define __ELILO_SYSDEPS_H__
+#ifndef __ELILO_PRIVATE_X86_64_H__
+#define __ELILO_PRIVATE_X86_64_H__
 
-#ifdef CONFIG_ia64
-#include "ia64/sysdeps.h"
-#elif defined CONFIG_ia32
-#include "ia32/sysdeps.h"
-#elif defined CONFIG_x86_64
-#include "x86_64/sysdeps.h"
-#endif
+#endif /* __ELILO_PRIVATE_X86_64_H__ */
 
-#endif /* __ELILO_SYSDEPS_H__ */

@@ -1,6 +1,10 @@
 /* 
  *  Copyright (C) 2001-2003 Hewlett-Packard Co.
  *	Contributed by Richard Hirst <rhirst@linuxcare.com>
+ *  Copyright (C) 2006-2009 Intel Corporation
+ *	Contributed by Fenghua Yu <fenghua.yu@intel.com>
+ *	Contributed by Bibo Mao <bibo.mao@intel.com>
+ *	Contributed by Chandramouli Narayanan <mouli@linux.intel.com>
  *
  * This file is part of the ELILO, the EFI Linux boot loader.
  *
@@ -45,8 +49,8 @@ static CHAR16 PromptBuf[CMDLINE_MAXLEN];
 #define DEF_ATTR	EFI_TEXT_ATTR(EFI_LIGHTGRAY,EFI_BLACK)
 
 
-#define ClearScreen()	ST->ConOut->ClearScreen(ST->ConOut)
-#define SetTextAttr(a)	ST->ConOut->SetAttribute(ST->ConOut, a)
+#define ClearScreen()	uefi_call_wrapper(ST->ConOut->ClearScreen, 1, ST->ConOut)
+#define SetTextAttr(a)	uefi_call_wrapper(ST->ConOut->SetAttribute, 2, ST->ConOut, a)
 
 static INTN
 tohex(INTN c)
@@ -249,7 +253,8 @@ reprint:
 	SetTextAttr(CurrentAttr);
 
 	for (;;) {
-		while ((status=ip->ReadKeyStroke(ip, &key)) == EFI_NOT_READY);
+		while ((status = uefi_call_wrapper(ip->ReadKeyStroke, 2, ip, &key)) 
+			== EFI_NOT_READY);
 		if (EFI_ERROR(status)) {
 			SetTextAttr(EFI_TEXT_ATTR(EFI_LIGHTGRAY,EFI_BLACK));
 			ClearScreen();
@@ -295,7 +300,7 @@ reprint:
 			if (i) {
 				msgbuf[i] = 0;
 				paint_msg(msgbuf);
-				while ((status=ip->ReadKeyStroke(ip, &key)) == EFI_NOT_READY);
+				while ((status= uefi_call_wrapper(ip->ReadKeyStroke, 2, ip, &key)) == EFI_NOT_READY);
 				goto reprint;
 			}
 		}

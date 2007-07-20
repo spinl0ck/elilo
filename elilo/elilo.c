@@ -1,5 +1,5 @@
 /* 
- * elilo.c - IA-64/IA-32 EFI Linux loader
+ * elilo.c - IA-64/IA-32/x86_64 EFI Linux loader
  *
  *  Copyright (C) 1999-2003 Hewlett-Packard Co.
  *	Contributed by David Mosberger <davidm@hpl.hp.com>.
@@ -7,6 +7,11 @@
  *
  *  Copyright (C) 1999-2000 VA Linux Systems
  *       Contributed by Johannes Erdfelt <jerdfelt@valinux.com>.
+ *
+ *  Copyright (C) 2006-2009 Intel Corporation
+ *	Contributed by Fenghua Yu <fenghua.yu@intel.com>
+ *	Contributed by Bibo Mao <bibo.mao@intel.com>
+ *	Contributed by Chandramouli Narayanan <mouli@linux.intel.com>
  *
  * This file is part of the ELILO, the EFI Linux boot loader.
  *
@@ -41,7 +46,7 @@
 #include "loader.h"
 #include "config.h" /* for config_init() */
 
-#define ELILO_VERSION			L"3.4"
+#define ELILO_VERSION			L"3.7"
 #define ELILO_SHARED_CMDLINE_OPTS	L"pPMC:aDhd:i:vVc:E"
 
 elilo_config_t elilo_opt;
@@ -244,7 +249,7 @@ do_launch:
 	if ((bp=create_boot_params(cmdline, &imem, &mmem, &cookie)) == 0) goto error;
 
 	/* terminate bootservices */
-	status = BS->ExitBootServices(image, cookie);
+	status = uefi_call_wrapper(BS->ExitBootServices, 2, image, cookie);
 	if (EFI_ERROR(status)) goto bad_exit;
 
 	start_kernel(kd.kentry, bp);
@@ -307,7 +312,7 @@ fixupargs(EFI_LOADED_IMAGE *info)
 
 #define FAKE_ELILONAME	L"elilo-forced"
 
-	status = BS->HandleProtocol (info->DeviceHandle, &PxeBaseCodeProtocol, (VOID **)&pxe);
+	status = uefi_call_wrapper(BS->HandleProtocol, 3, info->DeviceHandle, &PxeBaseCodeProtocol, (VOID **)&pxe);
 	if (EFI_ERROR(status)) return;
 
 	default_load_options      = info->LoadOptions;
@@ -365,7 +370,7 @@ check_edd30(VOID)
 	UINT8		bool = FALSE;
 	INTN		ret = -1;
 
-	status = RT->GetVariable(L"EDD30", &edd30_guid, NULL, &l, &bool);
+	status = uefi_call_wrapper(RT->GetVariable, 5, L"EDD30", &edd30_guid, NULL, &l, &bool);
 	if (status == EFI_BUFFER_TOO_SMALL || (bool != TRUE && bool != FALSE)) {
 		ERR_PRT((L"Warning: EDD30 EFI variable is not boolean value: forcing it to TRUE"));
 		return -1;
@@ -395,7 +400,7 @@ force_edd30(VOID)
 	UINT8		bool;
 
 	bool = TRUE;
-	status = RT->SetVariable(L"EDD30", &edd30_guid, EDD30_ATTR, l, &bool);
+	status = uefi_call_wrapper(RT->SetVariable, 5, L"EDD30", &edd30_guid, EDD30_ATTR, l, &bool);
 	if (EFI_ERROR(status)) {
 		ERR_PRT((L"can't set EDD30 variable: ignoring it"));
 		return -1;
@@ -439,19 +444,18 @@ efi_main (EFI_HANDLE image, EFI_SYSTEM_TABLE *system_tab)
 	 * mode.
 	 * XXX: clean this up !
 	 */
-       BS->SetWatchdogTimer(0, 0x0, 0, NULL);
+       uefi_call_wrapper(BS->SetWatchdogTimer, 4, 0, 0x0, 0, NULL);
 
 	/* initialize memory allocator */
 	if (alloc_init() == -1) return EFI_LOAD_ERROR;
 
-	status = BS->HandleProtocol(image, &LoadedImageProtocol, (VOID **) &info);
+	status = uefi_call_wrapper(BS->HandleProtocol, 3, image, &LoadedImageProtocol, (VOID **) &info);
 	if (EFI_ERROR(status)) {
 		ERR_PRT((L"image handle does not support LOADED_IMAGE protocol"));
 		return EFI_LOAD_ERROR;
 	}
 
 	VERB_PRT(5,Print(L"Loaded at 0x%lx size=%d bytes code=%d data=%d\n", info->ImageBase, info->ImageSize, info->ImageCodeType, info->ImageDataType));
-
 	/*
 	 * verify EDD3.0 status. Users may have to reboot 
 	 */

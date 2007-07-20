@@ -1,6 +1,9 @@
 /*
  *  Copyright (C) 2001-2003 Hewlett-Packard Co.
  *	Contributed by Stephane Eranian <eranian@hpl.hp.com>
+ *	Contributed by Fenghua Yu <Fenghua.Yu@intel.com>
+ *	Contributed by Bibo Mao <bibo.mao@intel.com>
+ *	Contributed by Chandramouli Narayanan <mouli@linux.intel.com>
  *
  * This file is part of the ELILO, the EFI Linux boot loader.
  *
@@ -100,7 +103,7 @@ alloc(UINTN size, EFI_MEMORY_TYPE type)
 
 	if (type == 0) type = EfiLoaderData;
 
-	status = BS->AllocatePool (type, size, &tmp);
+	status = uefi_call_wrapper(BS->AllocatePool, 3, type, size, &tmp);
     	if (EFI_ERROR(status)) {
         	ERR_PRT((L"allocator: AllocatePool(%d, %d, 0x%x) failed (%r)\n", type, size, status));
 		return NULL;
@@ -127,9 +130,9 @@ alloc_pages(UINTN pgcnt, EFI_MEMORY_TYPE type, EFI_ALLOCATE_TYPE where, VOID *ad
 		return NULL;
 	}
 
-	status = BS->AllocatePages(where, type , pgcnt, &tmp);
+	status = uefi_call_wrapper(BS->AllocatePages, 4, where, type , pgcnt, &tmp);
     	if (EFI_ERROR(status)) {
-        	VERB_PRT(1, (L"allocator: AllocatePages(%d, %d, %d, 0x%lx) failed (%r)\n", where, type, pgcnt, tmp, status));
+        	VERB_PRT(1, Print(L"allocator: AllocatePages(%d, %d, %d, 0x%lx) failed (%r)\n", where, type, pgcnt, tmp, status));
 		return NULL;
     	}
 	/* XXX: will cause warning on IA-32 */
@@ -155,7 +158,7 @@ free(VOID *addr)
 		if (p->addr == addr) goto found;
 	}
 	/* not found */
-        VERB_PRT(1, (L"allocator: invalid free @ 0x%lx\n", addr));
+        VERB_PRT(1, Print(L"allocator: invalid free @ 0x%lx\n", addr));
 	return;	
 found:
         DBG_PRT((L"free: %s @0x%lx size=%ld\n", 
@@ -163,9 +166,9 @@ found:
 		addr, p->size));
 
 	if (p->type == ALLOC_POOL) 
-		BS->FreePool(addr);
+		uefi_call_wrapper(BS->FreePool, 1, addr);
 	else
-		BS->FreePages((EFI_PHYSICAL_ADDRESS)addr, p->size);
+		uefi_call_wrapper(BS->FreePages, 2, (EFI_PHYSICAL_ADDRESS)addr, p->size);
 
 	/* remove from used list */
 	if (p->next) 
@@ -195,9 +198,9 @@ free_all(VOID)
 		DBG_PRT((L"free_all %a @ 0x%lx\n", used_allocs->type == ALLOC_POOL ? "pool" : "pages", used_allocs->addr));
 	
 		if (used_allocs->type == ALLOC_POOL)
-			BS->FreePool(used_allocs->addr);
+			uefi_call_wrapper(BS->FreePool, 1, used_allocs->addr);
 		else
-			BS->FreePages((EFI_PHYSICAL_ADDRESS)used_allocs->addr, used_allocs->size);
+			uefi_call_wrapper(BS->FreePages, 2, (EFI_PHYSICAL_ADDRESS)used_allocs->addr, used_allocs->size);
 
 		tmp = used_allocs->next;
 

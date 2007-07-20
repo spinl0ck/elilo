@@ -1,14 +1,15 @@
-                     ELILO: the IA-32 and IA-64 Linux Loader
-		     ---------------------------------------
+                     ELILO: the IA-32,IA-64 and x86_64 Linux Loader
+		     ----------------------------------------------
 	               Stephane Eranian <eranian@hpl.hp.com>
 
 		                 August 2003
 
 	           Copyright (C) 2000-2003 Hewlett-Packard Co.
+	           Copyright (C) 2006-2010 Intel Co.
 
 
-This package contains version 3.4 of elilo, the EFI boot loader
-for IA-64(IPF) and IA-32(x86) EFI-based platforms.
+This package contains version 3.7 of elilo, the EFI boot loader
+for IA-64(IPF),IA-32(x86) and x86_64 EFI-based platforms.
 
 
 RELEASE NOTES:
@@ -64,6 +65,12 @@ RELEASE NOTES:
 	ld : GNU ld version 2.13.90.0.2 20020802
 
 	The Redhat 9.0 toolchain does not work at the moment.
+
+	For x86_64, a toolchain known to produce working binaries is:
+		gcc-4.1.1 or above
+		binutils-2.17.50.0.14 with Intel64 EFI support
+	For x86_64, the following libraries are required for the elilo build
+		gnu-efi library with x86_64
 
 DOCUMENTATION:
 --------------

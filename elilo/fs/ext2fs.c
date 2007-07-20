@@ -144,7 +144,7 @@ read_bytes(EFI_BLOCK_IO *blkio, UINT32 mediaid, UINTN offset, VOID *addr, UINTN 
 
 	DBG_PRT((L"readblock(%x, %d, %d, %d, %x)", blkio, mediaid, base, buffer_size, buffer));
 
-	status = blkio->ReadBlocks(blkio, mediaid, base, buffer_size, buffer); 
+	status = uefi_call_wrapper(blkio->ReadBlocks, 5, blkio, mediaid, base, buffer_size, buffer); 
 	if (EFI_ERROR(status)) {
 		ERR_PRT((L"readblock(%d,%d)=%r", base, buffer_size, status));
 		goto error;
@@ -866,13 +866,13 @@ ext2fs_install_one(EFI_HANDLE dev, VOID **intf)
 	EFI_BLOCK_IO *blkio;
 	ext2fs_t *ext2fs;
 
-	status = BS->HandleProtocol (dev, &Ext2FsProtocol, (VOID **)&ext2fs);
+	status = uefi_call_wrapper(BS->HandleProtocol, 3, dev, &Ext2FsProtocol, (VOID **)&ext2fs);
 	if (status == EFI_SUCCESS) {
 		ERR_PRT((L"Warning: found existing %s protocol on device", FS_NAME));
 		goto found;
 	}
 	
-	status = BS->HandleProtocol(dev, &BlockIoProtocol, (VOID **)&blkio);
+	status = uefi_call_wrapper(BS->HandleProtocol, 3, dev, &BlockIoProtocol, (VOID **)&blkio);
 	if (EFI_ERROR(status)) return EFI_INVALID_PARAMETER;
 	
 	VERB_PRT(5,
@@ -944,7 +944,7 @@ ext2fs_install(VOID)
 	EFI_STATUS status;
 	VOID *intf;
 
-	BS->LocateHandle(ByProtocol, &BlockIoProtocol, NULL, &size, NULL);
+	uefi_call_wrapper(BS->LocateHandle, 5, ByProtocol, &BlockIoProtocol, NULL, &size, NULL);
 	if (size == 0) return EFI_UNSUPPORTED; /* no device found, oh well */
 
 	DBG_PRT((L"size=%d", size));
@@ -955,7 +955,8 @@ ext2fs_install(VOID)
 		return EFI_OUT_OF_RESOURCES;
 	}
 	
-	status = BS->LocateHandle(ByProtocol, &BlockIoProtocol, NULL, &size, (VOID **)dev_tab);
+	status = uefi_call_wrapper(BS->LocateHandle, 5, ByProtocol, &BlockIoProtocol, NULL, 
+				&size, (VOID **)dev_tab);
 	if (status != EFI_SUCCESS) {
 		ERR_PRT((L"failed to get handles: %r", status));
 		free(dev_tab);
@@ -984,7 +985,7 @@ ext2fs_uninstall(VOID)
 	for(i=0; i < ndev; i++) {
 		if (dev_tab[i].intf == NULL) continue;
 		e2fs = FS_PRIVATE(dev_tab[i].intf);
-		status = BS->UninstallProtocolInterface(e2fs->dev, &Ext2FsProtocol, dev_tab[i].intf);
+		status = uefi_call_wrapper(BS->UninstallProtocolInterface, 3, e2fs->dev, &Ext2FsProtocol, dev_tab[i].intf);
 		if (EFI_ERROR(status)) {
 			ERR_PRT((L"Uninstall %s error: %r", FS_NAME, status));
 			continue;

@@ -1,3 +1,74 @@
+2007-07-19 Jason Fleischli <jason.fleischli@hp.com>
+	* Integrated x86_64 support patches from Chandramouli Narayanan
+	  <mouli@linux.intel.com> changes summarized in following bullets.
+	* alloc.c -- adds patch contributors credit to copyright
+	* alloc.c -- adds uefi_call_wrapper around BS->function calls
+	* alloc.c -- adds call to Print on VERB_PRT
+	* alternate.c -- adds patch contributors credit around copyright
+	* alternate.c -- adds uefi_call_wrapper around RT->function calls
+	* simple.c -- adds patch contributors credit to copyright
+	* simple.c -- adds uefi_call_wrapper around ip->ReadKeyStroke
+	* textmenu.c -- adds patch contributors credit to copyright
+	* textmenu.c -- adds uefi_call_wrapper around ClearScreen &
+	  SetTextAttr
+	* textmenu.c -- adds uefi_call_wrapper around ip->ReadKeyStroke
+	* elilo.c -- adds patch contributors credit to copyright
+	* elilo.c -- fixes version number for ELILO_VERSION macro to current
+	* elilo.c -- adds uefi_call_wrapper around BS->function calls
+	* elilo.c -- adds uefi_call_wrapper around RT->function calls
+	* fileops.c -- adds patch contributors credit to copyright
+	* fileops.c -- adds uefi_call_wrapper around BS->function calls
+	* fileops.c -- adds uefi_call_wrapper around RT->function calls
+	* fileops.c -- adds uefi_call_wrapper around blkio->function calls
+	* localfs.c -- adds patch contributors credit to copyright
+	* localfs.c -- changed EFI_HANDLE *dev declaration to non-pointer type
+	* localfs.c -- adds uefi_call_wrapper around lfs->volume->functions
+	* localfs.c -- adds uefi_call_wrapper around BS->function calls
+	* netfs.c -- adds patch contributors credit to copyright
+	* netfs.c -- adds uefi_call_wrapper around nfs->pxe->function calls
+	* netfs.c -- adds uefi_call_wrapper around BS->function calls
+	* getopt.c -- changed int to char in StrChr() function
+	* Make.defaults -- adds patch contributors credit to copyright
+	* Make.defaults -- adds cflag for efi function wrapper
+	* Makefile -- adds patch contributors credit to copyright
+	* Makefile -- x86_64 subdir and a new rule for .S
+	* util.c -- adds patch contributors credit to copyright
+	* util.c -- adds uefi_call_wrapper to systab->functions
+	* util.c -- adds uefi_call_wrapper to conin->functions
+	* util.c -- adds uefi_call_wrapper to BS->functions
+	* util.c -- doubles ELILO_MEMMAP_SIZE_DEFAULT in get_memmap() function
+	* bootparams.c -- uses ia32 params for x86_64 addition.. hmmmm?
+	* config.c -- adds patch contributors credit to copyright
+	* config.c -- adds define reference for x86_64.conf
+	* config.c -- in config_error() removes use of va_list which maps to
+	  the gnu C-lib iface __gnuc_va_list. Replaces the use of _IPrint on
+	  the va_list with direct use of IPrint(systab->ConOut, msg);
+	  *maintainer note, this probably introduces a bug, in light of this
+	  note from the patch submitter --> "On some x86_64 systems with
+	  EFI1.10 firmware I tested, early boot messages did not appear on console. 
+	  However, I didn't encounter this behavior on x86_64 systems with UEFI2.0 
+	  firmware"
+	* elf.h -- adds #def for x86_64
+	* glue_netfs.c -- adds patch contributors credit to copyright
+	* glue_netfs.c -- adds define for x86_64.conf
+	* sysdeps.h -- adds patch contributors credit to copyright
+	* sysdeps.h -- add include reference for new x86_64 subdir
+	* x86_64/ -- new subdir - all based on elilo/ia32 subdir
+	* x86_64/bin_to_h.c -- new file, stream fed binary to hex converter
+	* x86_64/bzimage.c -- new file, binary compressed kernel support
+	* x86_64/gzip.c -- new file, embedded gzip
+	* x86_64/gzip_loader.c -- new file, embedded gzip
+	* x86_64/gzip.h -- new file, embedded gzip
+	* x86_64/inflate.c -- new file, a pkzip method 8 embedded decompressor
+	* x86_64/Makefile -- new file
+	* x86_64/plain_loader.c -- new file, for loading non-compressed kernels
+	* x86_64/private.h -- new file
+	* x86_64/rmswitch.S -- new file, RealMode assembly module
+	* x86_64/sysdeps.h -- new file, system stuff for x86_64, e820 mapping
+	  added.
+	* x86_64/sysdeps.c -- new file, system stuff for x86_64
+	* elilo.txt -- documentation update, add Intel to copyright
+	* README.gnu-efi -- documentation update for x86_64
 2006-01-27 Alex Williamson <alex.williamson@hp.com>
 	* Found a couple more places where vmcode isn't zeroed, causing the
 	  option to get carried over to labels it shouldn't.

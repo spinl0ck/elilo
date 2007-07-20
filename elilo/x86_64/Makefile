@@ -2,7 +2,7 @@
 #  Copyright (C) 2001-2003 Hewlett-Packard Co.
 #	Contributed by Stephane Eranian <eranian@hpl.hp.com>
 #
-# This file is part of ELILO, the LINUX EFI boot loader.
+# This file is part of the ELILO, the EFI Linux boot loader.
 #
 #  ELILO is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -23,16 +23,30 @@
 # to use this program.
 #
 
-%.efi: %.so 
-	$(OBJCOPY) -j .text -j .sdata -j .data -j .dynamic -j .dynsym -j .rel \
-		   -j .rela -j .reloc --target=$(FORMAT) $*.so $@
+include ../Make.defaults
+include ../Make.rules
 
-%.so: %.o 
-	$(LD) $(LDFLAGS) $^ -o $@ $(LOADLIBES)
+TOPDIR=$(CDIR)/..
 
-%.o: %.c 
-	$(CC) $(INCDIR) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
-# a rule for .S
-%.o: %.S 
-	$(CC) $(INCDIR) $(CFLAGS) $(CPPFLAGS) -c $< -o $@
+FILES=system.o config.o bzimage.o plain_loader.o gzip_loader.o gzip.o
+#FILES=system.o config.o plain_loader.o
 
+TARGET=sysdeps.o
+
+all: $(TARGET)
+
+system.o: rmswitch.h
+
+rmswitch.h: bin_to_h.c rmswitch.S
+	$(CC) -o bin_to_h bin_to_h.c
+	$(AS) -o rmswitch.o rmswitch.S
+	$(LD) -Ttext 0x0 -s --oformat binary -o rmswitch rmswitch.o
+	./bin_to_h <rmswitch >rmswitch.h
+
+$(TARGET): $(FILES)
+	$(LD) -r -o $@ $(FILES)
+
+clean:
+	$(RM) -f $(TARGET) $(FILES)
+	$(RM) -f bin_to_h.o bin_to_h
+	$(RM) -f rmswitch.h rmswitch.o rmswitch

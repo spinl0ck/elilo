@@ -83,7 +83,7 @@ create_boot_params(CHAR16 *args, memdesc_t *initrd, memdesc_t *vmcode, UINTN *co
 /* XXX: need to fix this for 3.5 */
 #ifdef CONFIG_ia64
        cp = ((CHAR8 *)bp) + BOOT_PARAM_MEMSIZE - cmdline_size;
-#elif defined CONFIG_ia32
+#elif defined CONFIG_ia32 || CONFIG_x86_64
        cp = ((CHAR8 *)bp) + BOOT_PARAM_MEMSIZE - 2048;
 #endif
 

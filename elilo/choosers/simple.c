@@ -1,6 +1,10 @@
 /* 
  *  Copyright (C) 2001-2003 Hewlett-Packard Co.
  *	Contributed by Stephane Eranian <eranian@hpl.hp.com>
+ *  Copyright (C) 2006-2009 Intel Corporation
+ *	Contributed by Fenghua Yu <fenghua.yu@intel.com>
+ *	Contributed by Bibo Mao <bibo.mao@intel.com>
+ *	Contributed by Chandramouli Narayanan <mouli@linux.intel.com>
  *
  * This file is part of the ELILO, the EFI Linux boot loader.
  *
@@ -136,7 +140,8 @@ reprint:
 	first_time = 0;
 
 	for (;;) {
-		while ((status=ip->ReadKeyStroke(ip, &key)) == EFI_NOT_READY);
+		while ((status = uefi_call_wrapper(ip->ReadKeyStroke, 2, ip, &key))
+				 == EFI_NOT_READY);
 		if (EFI_ERROR(status)) {
 			ERR_PRT((L"select_kernel readkey: %r", status));
 			return -1;

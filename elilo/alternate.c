@@ -1,6 +1,9 @@
 /*
  *  Copyright (C) 2001-2003 Hewlett-Packard Co.
  *	Contributed by Stephane Eranian <eranian@hpl.hp.com>
+ *	Contributed by Fenghua Yu <fenghua.yu@intel.com>
+ *	Contributed by Bibo Mao <bibo.mao@intel.com>
+ *	Contributed by Chandramouli Narayanan<mouli@linux.intel.com>
  *
  * This file is part of the ELILO, the EFI Linux boot loader.
  *
@@ -77,7 +80,7 @@ alternate_kernel(CHAR16 *buffer, INTN size)
 	 * 	- the variable does not exist
 	 * 	- our buffer size is too small.
 	 */
-	status = RT->GetVariable(ELILO_ALTK_VAR, &altk_guid, NULL, &size, buffer);
+	status = uefi_call_wrapper(RT->GetVariable, 5, ELILO_ALTK_VAR, &altk_guid, NULL, &size, buffer);
 	if (EFI_ERROR(status)) {
 		DBG_PRT((L"cannot access variable %s: %r", ELILO_ALTK_VAR, status));
 
@@ -110,7 +113,7 @@ alternate_kernel(CHAR16 *buffer, INTN size)
 
 	ret = 0;
 delete_var:
-	status = RT->SetVariable(ELILO_ALTK_VAR, &altk_guid, 0, 0, NULL);
+	status = uefi_call_wrapper(RT->SetVariable, 5, ELILO_ALTK_VAR, &altk_guid, 0, 0, NULL);
 	if (EFI_ERROR(status)) {
 		ERR_PRT((L"cannot erase variable %s", ELILO_ALTK_VAR));
 	}

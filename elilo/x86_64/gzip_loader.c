@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2001-2003 Hewlett-Packard Co.
+ *  Copyright (C) 2001-2002 Hewlett-Packard Co.
  *	Contributed by Stephane Eranian <eranian@hpl.hp.com>
  *  Copyright (C) 2006-2009 Intel Corporation
  *	Contributed by Fenghua Yu <fenghua.yu@intel.com>
@@ -27,15 +27,57 @@
  * to use this program.
  */
 
-#ifndef __ELILO_SYSDEPS_H__
-#define __ELILO_SYSDEPS_H__
+#include <efi.h>
+#include <efilib.h>
 
-#ifdef CONFIG_ia64
-#include "ia64/sysdeps.h"
-#elif defined CONFIG_ia32
-#include "ia32/sysdeps.h"
-#elif defined CONFIG_x86_64
-#include "x86_64/sysdeps.h"
-#endif
+#include "elilo.h"
+#include "loader.h"
+#include "gzip.h"
 
-#endif /* __ELILO_SYSDEPS_H__ */
+static INTN
+gzip_probe_format(CHAR16 *kname)
+{
+	UINT8 buf[4];
+	EFI_STATUS status;
+	INTN ret = -1;
+	UINTN size;
+	fops_fd_t fd;
+
+	status = fops_open(kname, &fd);
+	if (EFI_ERROR(status)) return -1;
+
+	size = sizeof(buf);
+	status = fops_read(fd, buf, &size);
+
+	if (EFI_ERROR(status) || size != sizeof(buf)) goto error;
+
+	ret = gzip_probe(buf, sizeof(buf));
+error:
+	fops_close(fd);
+	return ret;
+}
+
+
+static INTN
+gzip_load_kernel(CHAR16 *kname, kdesc_t *kd)
+{
+	EFI_STATUS status;
+	INT32 ret;
+	fops_fd_t fd;
+
+	status = fops_open(kname, &fd);
+	if (EFI_ERROR(status)) return ELILO_LOAD_ERROR;
+
+	ret = gunzip_kernel(fd, kd);
+       
+	fops_close(fd);
+
+	return ret; /* could be success, error, or abort */
+}
+
+loader_ops_t gzip_loader={
+	NULL,
+	LD_NAME,
+	gzip_probe_format,
+	gzip_load_kernel
+};

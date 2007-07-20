@@ -1,6 +1,9 @@
 /*
  *  Copyright (C) 2001-2003 Hewlett-Packard Co.
  *	Contributed by Stephane Eranian <eranian@hpl.hp.com>
+ *	Contributed by Fenghua Yu <fenghua.yu@intel.com>
+ *	Contributed by Bibo Mao <bibo.mao@intel.com>
+ *	Contributed by Chandramouli Narayanan <mouli@linux.intel.com>
  *
  * This file is part of the ELILO, the EFI Linux boot loader.
  *
@@ -42,6 +45,8 @@
 #define ELILO_ARCH_DEFAULT_CONFIG	L"elilo-ia64.conf"
 #elif defined (CONFIG_ia32)
 #define ELILO_ARCH_DEFAULT_CONFIG	L"elilo-ia32.conf"
+#elif defined (CONFIG_x86_64)
+#define ELILO_ARCH_DEFAULT_CONFIG       L"elilo-x86_64.conf"
 #else
 #error "You need to specfy your default arch config file"
 #endif
@@ -204,14 +209,8 @@ static fops_fd_t config_fd;
 static VOID 
 config_error(CHAR16 *msg,...)
 {
-    va_list ap;
-    extern UINTN _IPrint (UINTN, UINTN, SIMPLE_TEXT_OUTPUT_INTERFACE *, CHAR16 *, CHAR8 *, va_list);
-
     Print(L"near line %d: ",line_num);
-
-    va_start(ap,msg);
-    _IPrint((UINTN)-1, (UINTN)-1, systab->ConOut, msg, NULL, ap);
-    va_end(ap);
+    IPrint(systab->ConOut, msg);
     Print(L"\n");
 }
 

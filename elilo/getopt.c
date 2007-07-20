@@ -25,7 +25,6 @@
  * 02111-1307, USA.
  */
 
-
 #include <efi.h>
 #include <efilib.h>
 
@@ -36,7 +35,7 @@
 #define BADCH	(INTN)'?'
 #define BADARG	(INTN)':'
 
-extern CHAR16 * StrChr(IN const CHAR16 *s, INT16 c);
+extern CHAR16 * StrChr(IN const CHAR16 *s, CHAR16 c);
 
 CHAR16 *Optarg;
 INTN    Optind = 1;

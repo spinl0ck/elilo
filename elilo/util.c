@@ -5,6 +5,11 @@
  *  Copyright (C) 2001 Silicon Graphics, Inc.
  *	Contributed by Brent Casavant <bcasavan@sgi.com>
  *
+ *  Copyright (C) 2006-2009 Intel Corporation
+ *	Contributed by Fenghua Yu <fenghua.yu@intel.com>
+ *	Contributed by Bibo Mao <bibo.mao@intel.com>
+ *	Contributed by Chandramouli Narayanan <mouli@linux.intel.com>
+ *
  * This file is part of the ELILO, the EFI Linux boot loader.
  *
  *  ELILO is free software; you can redistribute it and/or modify
@@ -40,7 +45,10 @@
 static INTN
 read_keypress(EFI_INPUT_KEY *key)
 {
-	return systab->ConIn->ReadKeyStroke(systab->ConIn, key);
+	return uefi_call_wrapper(systab->ConIn->ReadKeyStroke,
+				2,
+				systab->ConIn,
+				key);
 }
 
 
@@ -55,7 +63,10 @@ check_abort(VOID)
 inline VOID
 reset_input(VOID)
 {
-	systab->ConIn->Reset(systab->ConIn, 1);
+	uefi_call_wrapper(systab->ConIn->Reset,
+			2,
+			systab->ConIn,
+			1);
 }
 
 #if 0
@@ -71,9 +82,9 @@ wait_keypress_abort(VOID)
 	Print(L"Hit ENTER to continue or ANY other key to cancel");
 
 	/* cleanup buffer first */
-	while (conin->ReadKeyStroke(conin, &key) == EFI_SUCCESS);
+	while (uefi_call_wrapper(conin->ReadKeyStroke, 2, conin, &key) == EFI_SUCCESS);
 
-	while ((status=conin->ReadKeyStroke(conin, &key)) == EFI_NOT_READY );
+	while ((status=uefi_call_wrapper(conin->ReadKeyStroke,2, conin, &key)) == EFI_NOT_READY );
 
 	if (EFI_ERROR(status)) return ELILO_LOAD_ERROR;
 
@@ -102,13 +113,13 @@ wait_timeout(UINTN timeout)
 	if (timeout == 0) return 0;
 
 	/* Create a timeout timer */
-	status = BS->CreateEvent(EVT_TIMER, 0, NULL, NULL, &timer);
+	status = uefi_call_wrapper(BS->CreateEvent, 5, EVT_TIMER, 0, NULL, NULL, &timer);
 	if (EFI_ERROR(status)) {
 		ERR_PRT((L" waitkey CreateEvent failed %r", status));
 		return -1;
 	}
 	/* In 100ns increments */
-	status = BS->SetTimer(timer, TimerPeriodic, TENTH_SEC);
+	status = uefi_call_wrapper(BS->SetTimer, 3, timer, TimerPeriodic, TENTH_SEC);
 	if (EFI_ERROR(status)) {
 		ERR_PRT((L"waitkey SetTimer failed %r", status));
 		return -1;
@@ -118,7 +129,7 @@ wait_timeout(UINTN timeout)
 	list[1] = systab->ConIn->WaitForKey;
 
 	do {
-		status = BS->WaitForEvent(2, list, &idx);
+		status = uefi_call_wrapper(BS->WaitForEvent, 3, 2, list, &idx);
 		if (EFI_ERROR(status)) {
 			ERR_PRT((L"waitkey WaitForEvent failed %r", status));
 			return -1;
@@ -130,13 +141,13 @@ wait_timeout(UINTN timeout)
 	 * SetTimer(timer, TimerCancel, 0) is causing problems on IA-32 and gcc3
 	 * I do not know why it dies with EFI12.35. So let's fake a key stroke.
 	 */
-	status = BS->SetTimer(timer, TimerCancel, 0);
+	status = uefi_call_wrapper(BS->SetTimer, 3, timer, TimerCancel, 0);
 	if (EFI_ERROR(status)) {
 		ERR_PRT((L"waitkey SetTimer(TimerCancel) failed %r", status));
 		return -1;
 	}
 
-	BS->CloseEvent(timer);
+	uefi_call_wrapper(BS->CloseEvent, 1, timer);
 
 	return idx ? 1 : 0;
 }
@@ -278,7 +289,7 @@ read_file(UINTN fd, UINTN total_size, CHAR8 *buffer)
 INTN
 get_memmap(mmap_desc_t *desc)
 {
-#define	ELILO_MEMMAP_SIZE_DEFAULT	EFI_PAGE_SIZE
+#define	ELILO_MEMMAP_SIZE_DEFAULT	(EFI_PAGE_SIZE*2)
 #define	ELILO_MEMMAP_INC		(sizeof(EFI_MEMORY_DESCRIPTOR)<<1)
 
 	EFI_STATUS status;
@@ -292,7 +303,8 @@ get_memmap(mmap_desc_t *desc)
 			ERR_PRT((L"failed to allocate memory map buffer"));
 			return -1;
 		}
-		status = (*BS->GetMemoryMap)(&desc->map_size, desc->md, &desc->cookie, &desc->desc_size, &desc->desc_version);
+		status = uefi_call_wrapper(BS->GetMemoryMap, 5, &desc->map_size, desc->md, 
+					&desc->cookie, &desc->desc_size, &desc->desc_version);
 		if (status == EFI_SUCCESS) break;
 
 		free(desc->md);

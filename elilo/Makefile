@@ -1,6 +1,8 @@
 #
 #  Copyright (C) 2001-2003 Hewlett-Packard Co.
 #	Contributed by Stephane Eranian <eranian@hpl.hp.com>
+#	Contributed by Fenghua Yu<fenghua.yu@intel.com>
+#	Contributed by Chandramouli Narayanan<mouli@linux.intel.com>
 #
 # This file is part of ELILO, the LINUX EFI boot loader.
 #
@@ -56,6 +58,10 @@ endif
 
 ifeq ($(ARCH),ia32)
 SUBDIRS += ia32
+endif
+
+ifeq ($(ARCH),x86_64)
+SUBDIRS += x86_64
 endif
 
 FILES = elilo.o getopt.o strops.o loader.o \

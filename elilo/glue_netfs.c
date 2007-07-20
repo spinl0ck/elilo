@@ -1,6 +1,10 @@
 /*
  *  Copyright (C) 2001-2003 Hewlett-Packard Co.
  *	Contributed by Stephane Eranian <eranian@hpl.hp.com>
+ *  Copyright (C) 2006-2009 Intel Corporation
+ *	Contributed by Fenghua Yu <fenghua.yu@intel.com>
+ *	Contributed by Bibo Mao <bibo.mao@intel.com>
+ *	Contributed by Chandramouli Narayanan <mouli@linux.intel.com>
  *
  * This file is part of the ELILO, the EFI Linux boot loader.
  *
@@ -167,6 +171,8 @@ netfs_setdefaults(VOID *intf, config_file_t *config, CHAR16 *kname, UINTN maxlen
 #    define CONFIG_ARCH_EXTENSION L"-ia64.conf\0"
 #  elif defined (CONFIG_ia32)
 #    define CONFIG_ARCH_EXTENSION L"-ia64.conf\0"
+#  elif defined (CONFIG_x86_64)
+#    define CONFIG_ARCH_EXTENSION L"-x86_64.conf\0"
 #  else
 #    error "You need to specfy your default arch config file"
 #  endif            

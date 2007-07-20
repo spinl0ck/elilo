@@ -1,6 +1,7 @@
 #
 #  Copyright (C) 2001-2003 Hewlett-Packard Co.
 #	Contributed by Stephane Eranian <eranian@hpl.hp.com>
+#	Contributed by Chandramouli Narayanan<mouli@linux.intel.com>
 #
 # This file is part of ELILO, the LINUX EFI boot loader.
 #
@@ -54,7 +55,7 @@ CONFIG_machspec_netconfig=y
 # They are installed as part of the GNU-EFI package installation
 #
 EFIINC	   = /usr/include/efi
-GNUEFILIB   = /usr/lib
+GNUEFILIB  = /usr/lib
 EFILIB	   = /usr/lib
 EFICRT0	   = /usr/lib
 
@@ -67,7 +68,7 @@ CPPFLAGS   = -DCONFIG_$(ARCH)
 
 OPTIMFLAGS = -O2 
 DEBUGFLAGS = -Wall
-CFLAGS	   = $(OPTIMFLAGS) -fpic -fshort-wchar $(DEBUGFLAGS)
+CFLAGS     = $(OPTIMFLAGS) -fpic -fshort-wchar $(DEBUGFLAGS)
 LDFLAGS	   = -nostdlib -znocombreloc
 INSTALL	   = install
 
@@ -104,6 +105,12 @@ LD		= $(prefix)ld
 AR		= $(prefix)ar
 RANLIB	        = $(prefix)ranlib
 OBJCOPY	        = $(prefix)objcopy
+
+# Use Modified binutils that supports x86_64 using UEFI ABI
+ifeq ($(ARCH), x86_64)
+        CFLAGS   += -DEFI_FUNCTION_WRAPPER
+	OBJCOPY	  = /usr/bin/objcopy
+endif
 
 ifeq ($(ARCH),ia64)
  GCC_VERSION=$(shell $(CROSS_COMPILE)$(CC) -v 2>&1 | fgrep 'gcc version' | cut -f3 -d' ' | cut -f1 -d'.')

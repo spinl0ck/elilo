@@ -1,6 +1,9 @@
 /*
  *  Copyright (C) 2001-2003 Hewlett-Packard Co.
  *	Contributed by Stephane Eranian <eranian@hpl.hp.com>
+ *	Contributed by Fenghua Yu <fenghua.yu@intel.com>
+ *	Contributed by Bibo Mao <bibo.mao@intel.com>
+ *	Contributed by Chandramouli Narayanan <mouli@linux.intel.com>
  *
  * This file is part of the ELILO, the EFI Linux boot loader.
  *
@@ -135,7 +138,7 @@ glue_filesystem(EFI_GUID *proto, EFI_HANDLE dev, fops_fs_glue_t glue)
 	VOID *intf = NULL;
 	EFI_STATUS status;
 
-	status = BS->HandleProtocol(dev, proto, &intf);
+	status = uefi_call_wrapper(BS->HandleProtocol, 3, dev, proto, &intf);
 	if (EFI_ERROR(status)) {
 		ERR_PRT((L"unable to locate %g: should not happen", proto));
 		return NULL; /* should not happen */
@@ -358,6 +361,8 @@ fops_setdefaults(struct config_file *defconf, CHAR16 *kname, UINTN maxlen, CHAR1
 #define FILEOPS_ARCH_DEFAULT_CONFIG	L"elilo-ia64.conf"
 #elif defined (CONFIG_ia32)
 #define FILEOPS_ARCH_DEFAULT_CONFIG	L"elilo-ia32.conf"
+#elif defined (CONFIG_x86_64)
+#define FILEOPS_ARCH_DEFAULT_CONFIG    L"elilo-x86_64.conf"
 #else
 #error "You need to specfy your default arch config file"
 #endif
@@ -455,7 +460,7 @@ add_dev_tab(EFI_GUID *proto, EFI_HANDLE boot_handle, UINTN size, fops_fs_glue_t 
 	/*
 	 * get the actual device handles now
 	 */
-	status = BS->LocateHandle(ByProtocol, proto, NULL, &size, tab);
+	status = uefi_call_wrapper(BS->LocateHandle, 5, ByProtocol, proto, NULL, &size, tab);
 	if (status != EFI_SUCCESS) {
 		ERR_PRT((L"failed to get handles for proto %g size=%d: %r", proto, size, status));
 		free(tab);
@@ -536,7 +541,7 @@ find_filesystems(EFI_HANDLE boot_handle)
 	 */
 	for(fs = fs_tab; *fs; fs++) {
 		size = 0;
-		BS->LocateHandle(ByProtocol, &(*fs)->proto, NULL, &size, NULL);
+		uefi_call_wrapper(BS->LocateHandle, 5, ByProtocol, &(*fs)->proto, NULL, &size, NULL);
 		total += size;
 	}
 	if (total == 0) {
@@ -560,7 +565,7 @@ find_filesystems(EFI_HANDLE boot_handle)
 	for(fs = fs_tab; *fs; fs++) {
 		size = 0;
 
-		BS->LocateHandle(ByProtocol, &(*fs)->proto, NULL, &size, NULL);
+		uefi_call_wrapper(BS->LocateHandle, 5, ByProtocol, &(*fs)->proto, NULL, &size, NULL);
 		if (size == 0) continue;
 
 		add_dev_tab(&(*fs)->proto, boot_handle, size, (*fs)->glue);
