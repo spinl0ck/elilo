@@ -304,7 +304,7 @@ find_option(config_option_group_t *grp, CHAR16 *str)
  * 	- TOK_ERR: in case of (parsing) error
  */
 static token_t
-get_token(CHAR16 *str, UINTN maxlen)
+get_token_core(CHAR16 *str, UINTN maxlen, BOOLEAN rhs)
 {
     INTN ch, escaped;
     CHAR16 *here;
@@ -320,7 +320,7 @@ get_token(CHAR16 *str, UINTN maxlen)
 	while ((ch = next()), ch != '\n') if (ch == CHAR_EOF) return TOK_EOF;
 	line_num++;
     }
-    if (ch == '=') return TOK_EQUAL;
+    if (ch == '=' && !rhs) return TOK_EQUAL;
 
     if (ch == '"') {
 	here = str;
@@ -373,7 +373,7 @@ get_token(CHAR16 *str, UINTN maxlen)
 	}
 	else {
 	    if (ch == ' ' || ch == '\t' || ch == '\n' || ch == '#' ||
-	      ch == '=' || ch == CHAR_EOF) {
+	      ch == CHAR_EOF || (ch == '=' && !rhs)) {
 		again(ch);
 		*here = 0;
 		return TOK_STR;
@@ -384,6 +384,18 @@ get_token(CHAR16 *str, UINTN maxlen)
     }
     config_error(L"Token is too long");
     return TOK_ERR;
+}
+
+static token_t
+get_token(CHAR16 *str, UINTN maxlen)
+{
+    return get_token_core(str, maxlen, FALSE);
+}
+
+static token_t
+get_token_rhs(CHAR16 *str, UINTN maxlen)
+{
+    return get_token_core(str, maxlen, TRUE);
 }
 
 static INTN
@@ -679,7 +691,7 @@ do_string_core(config_option_t *p, CHAR16 *str, UINTN maxlen, CHAR16 *msg)
 	/*
 	 * now get the value
 	 */
-	tok = get_token(str, maxlen);
+	tok = get_token_rhs(str, maxlen);
 	if (tok != TOK_STR) {
 		config_error(L"Option %s expects %s", p->name, msg);
 		return -1;
@@ -935,6 +947,37 @@ find_description(CHAR16 *label)
 	return NULL;
 }
 
+static void
+add_root_to_options(CHAR16 *options, CHAR16 *root, CHAR16 *vmcode)
+{
+	CHAR16 *o, ko[CMDLINE_MAXLEN];
+
+	if (vmcode[0]) {
+		for (o = options; *o; o++) {
+			if (*o == '-' && *(o+1) == '-')
+				break;
+		}
+		if (! *o) {
+			/* no separator found, add one */
+			StrCpy(o, L" -- ");
+			o++;
+		}
+
+		/* advance past separator and whitespace */
+		o += 2;
+		while (*o == ' ') o++;
+	} else {
+		o = options;
+	}
+
+	/* insert root param at this point */
+	StrCpy(ko, o);
+	StrCpy(o, L"root=");
+	StrCat(o, root);
+	StrCat(o, L" ");
+	StrCat(o, ko);
+}
+
 INTN
 find_label(CHAR16 *label, CHAR16 *kname, CHAR16 *options, CHAR16 *initrd, CHAR16 *vmcode)
 {
@@ -957,15 +1000,12 @@ find_label(CHAR16 *label, CHAR16 *kname, CHAR16 *options, CHAR16 *initrd, CHAR16
 	/*
 	 * when the label does not exist, we still propagate the global options
 	 */
-	if (global_config.root[0]) {
-		StrCpy(options, L" root=");
-		StrCat(options, global_config.root);
-	}
-
 	if (global_config.options[0]) {
 		StrCat(options, L" ");
 		StrCat(options, global_config.options);
 	}
+	if (global_config.root[0])
+		add_root_to_options(options, global_config.root, global_config.vmcode);
 	if (global_config.readonly) StrCat(options, L" ro");
 
 	if (global_config.initrd[0]) StrCpy(initrd, global_config.initrd);
@@ -978,20 +1018,32 @@ find_label(CHAR16 *label, CHAR16 *kname, CHAR16 *options, CHAR16 *initrd, CHAR16
 found:
 	StrCpy(kname, img->kname);
 
+	/* per image initrd has precedence over global initrd */
+	if (img->initrd[0]) 
+		StrCpy(initrd, img->initrd);
+	else
+		StrCpy(initrd, global_config.initrd);
+
+	/* per image vmcode has precedence over global vmcode */
+	if (img->vmcode[0]) 
+		StrCpy(vmcode, img->vmcode);
+	else
+		StrCpy(vmcode, global_config.vmcode);
+
 	/*
 	 * literal option overrides any other image-based or global option
 	 *
 	 * In any case, the image option has priority over the global option
 	 */
 	if (img->literal == 0) {
-		if (img->root[0] || global_config.root[0]) {
-			StrCat(options, L"root=");
-			StrCat(options, img->root[0] ? img->root : global_config.root);
-		}
 		/* XXX: check max length */
 		if (img->options[0] || global_config.options[0]) {
 			StrCat(options, L" ");
 			StrCat(options, img->options[0] ? img->options: global_config.options);
+		}
+		if (img->root[0] || global_config.root[0]) {
+			add_root_to_options(options, img->root[0] 
+					    ? img->root : global_config.root, vmcode);
 		}
 		if (img->readonly || global_config.readonly) {
 			StrCat(options, L" ro");
@@ -1000,17 +1052,6 @@ found:
 		/* literal options replace everything */
 		StrCpy(options, img->options);
 	}
-
-	/* per image initrd has precedence over global initrd */
-	if (img->initrd[0]) 
-		StrCpy(initrd, img->initrd);
-	else if (global_config.initrd[0])
-		StrCpy(initrd, global_config.initrd);
-
-	if (img->vmcode[0]) 
-		StrCpy(vmcode, img->vmcode);
-	else if (global_config.vmcode[0])
-		StrCpy(vmcode, global_config.vmcode);
 
 	/*
 	 * point to architecture dependent options for this image
