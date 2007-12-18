@@ -1,3 +1,8 @@
+2007-09-27 Jason Fleischli <jason.fleischli@hp.com>
+	* updating changelog for last commit that was omitted
+	* incorporating AGriffis patches to enhance parsing
+	  passes root= option to kernel options and accounts for -- option
+	  designation.
 2007-07-19 Jason Fleischli <jason.fleischli@hp.com>
 	* Integrated x86_64 support patches from Chandramouli Narayanan
 	  <mouli@linux.intel.com> changes summarized in following bullets.
