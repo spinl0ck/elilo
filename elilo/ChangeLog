@@ -1,4 +1,6 @@
 2007-12-19 Jason Fleischli <jason.fleischli@hp.com>
+	* bumping version string to 3.8
+2007-12-19 Jason Fleischli <jason.fleischli@hp.com>
 	* MORE PATCHES FROM INTEL FOR IA32 X86_64.
 	* Fix compile warning for cmdline_addr assignment.
 	* Fix an issue caused by uninitialized e820_nr_map in fill_e820map.
