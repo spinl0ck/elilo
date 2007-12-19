@@ -157,6 +157,257 @@ sysdeps_free_boot_params(boot_params_t *bp)
 }
 
 /*
+ * Get video information.
+ */
+static INTN get_video_info(boot_params_t * bp) {
+        EFI_GUID GopProtocol = EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID;
+        EFI_GRAPHICS_OUTPUT_PROTOCOL *Gop_interface;
+        EFI_GRAPHICS_OUTPUT_MODE_INFORMATION *Gop_info;
+        EFI_GRAPHICS_OUTPUT_PROTOCOL_MODE   *Gop_mode;
+        EFI_HANDLE *Gop_handle;
+        EFI_STATUS efi_status;
+        UINTN size, size1;
+        UINT8 i;
+
+	efi_status = uefi_call_wrapper(
+			BS->LocateHandle,
+			5,
+			ByProtocol,
+			&GopProtocol,
+			NULL,
+			&size,
+			(VOID **)Gop_handle);
+
+	if (EFI_ERROR(efi_status) && efi_status != EFI_BUFFER_TOO_SMALL) {
+		ERR_PRT((L"LocateHandle GopProtocol failed."));
+		return -1;
+	}
+	Gop_handle = alloc(size, 0);
+	efi_status = uefi_call_wrapper(
+			BS->LocateHandle,
+			5,
+			ByProtocol,
+			&GopProtocol,
+			NULL,
+			&size,
+			(VOID **)Gop_handle);
+	if (EFI_ERROR(efi_status)) {
+		ERR_PRT((L"LocateHandle GopProtocol failed."));
+		free(Gop_handle);
+		return -1;
+	}
+
+	for (i=0; i < size/sizeof(EFI_HANDLE); i++) {
+		Gop_handle += i;
+		efi_status = uefi_call_wrapper(
+				BS->HandleProtocol,
+				3,
+				*Gop_handle,
+				&GopProtocol,
+				&Gop_interface);
+
+		if (EFI_ERROR(efi_status)) {
+			continue;
+		}
+		Gop_mode = Gop_interface->Mode;
+		efi_status = uefi_call_wrapper(
+				Gop_interface->QueryMode,
+				4,
+				Gop_interface,
+				Gop_mode->Mode,
+				&size1,
+				&Gop_info);
+		if (!EFI_ERROR(efi_status))
+			break;
+		if (EFI_ERROR(efi_status)) {
+			continue;
+		}
+	}
+	if (EFI_ERROR(efi_status) || i > (size/sizeof(EFI_HANDLE))) {
+		ERR_PRT((L"HandleProtocol GopProtocol failed."));
+		free(Gop_handle);
+		return -1;
+	}
+
+	bp->s.is_vga = 0x70;
+	bp->s.orig_cursor_col = 0;
+	bp->s.orig_cursor_row = 0;
+	bp->s.orig_video_page = 0;
+	bp->s.orig_video_mode = 0;
+	bp->s.orig_video_cols = 0;
+	bp->s.orig_video_rows = 0;
+	bp->s.orig_ega_bx = 0;
+	bp->s.orig_video_points = 0;
+
+	bp->s.lfb_width = Gop_info->HorizontalResolution;
+	bp->s.lfb_height = Gop_info->VerticalResolution;
+	bp->s.lfb_base = Gop_mode->FrameBufferBase;
+	bp->s.lfb_size = Gop_mode->FrameBufferSize;
+	bp->s.lfb_pages = 1;
+	bp->s.vesa_seg = 0;
+	bp->s.vesa_off = 0;
+	if (Gop_info->PixelFormat == PixelRedGreenBlueReserved8BitPerColor) {
+		bp->s.lfb_depth = 32;
+		bp->s.lfb_red_size = 8;
+		bp->s.lfb_red_pos = 0;
+		bp->s.lfb_green_size = 8;
+		bp->s.lfb_green_pos = 8;
+		bp->s.lfb_blue_size = 8;
+		bp->s.lfb_blue_pos = 16;
+		bp->s.lfb_rsvd_size = 8;
+		bp->s.lfb_rsvd_pos = 24;
+		bp->s.lfb_line_len = Gop_info->PixelsPerScanLine * 4;
+
+	} else if (Gop_info->PixelFormat == PixelBlueGreenRedReserved8BitPerColor) {
+		bp->s.lfb_depth = 32;
+		bp->s.lfb_red_size = 8;
+		bp->s.lfb_red_pos = 16;
+		bp->s.lfb_green_size = 8;
+		bp->s.lfb_green_pos = 8;
+		bp->s.lfb_blue_size = 8;
+		bp->s.lfb_blue_pos = 0;
+		bp->s.lfb_rsvd_size = 8;
+		bp->s.lfb_rsvd_pos = 24;
+		bp->s.lfb_line_len = Gop_info->PixelsPerScanLine * 4;
+	} else if (Gop_info->PixelFormat == PixelBitMask) {
+		find_bits(Gop_info->PixelInformation.RedMask,
+			  &bp->s.lfb_red_pos, &bp->s.lfb_red_size);
+		find_bits(Gop_info->PixelInformation.GreenMask,
+			  &bp->s.lfb_green_pos, &bp->s.lfb_green_size);
+		find_bits(Gop_info->PixelInformation.BlueMask,
+			  &bp->s.lfb_blue_pos, &bp->s.lfb_blue_size);
+		find_bits(Gop_info->PixelInformation.ReservedMask,
+			  &bp->s.lfb_rsvd_pos, &bp->s.lfb_rsvd_size);
+		bp->s.lfb_depth = bp->s.lfb_red_size + bp->s.lfb_green_size +
+				  bp->s.lfb_blue_size + bp->s.lfb_rsvd_size;
+		bp->s.lfb_line_len = (Gop_info->PixelsPerScanLine * bp->s.lfb_depth) / 8;
+	} else {
+		bp->s.lfb_depth = 4;
+		bp->s.lfb_red_size = 0;
+		bp->s.lfb_red_pos = 0;
+		bp->s.lfb_green_size = 0;
+		bp->s.lfb_green_pos = 0;
+		bp->s.lfb_blue_size = 0;
+		bp->s.lfb_blue_pos = 0;
+		bp->s.lfb_rsvd_size = 0;
+		bp->s.lfb_rsvd_pos = 0;
+		bp->s.lfb_line_len = bp->s.lfb_width / 2;
+	}
+	return 0;
+}
+
+/* Convert EFI memory map to E820 map for the operating system
+ * This code is based on a Linux kernel patch submitted by Edgar Hucek
+ */
+
+/* Add a memory region to the e820 map */
+static void add_memory_region (struct e820entry *e820_map,
+			       int *e820_nr_map,
+			       UINT64 start,
+			       UINT64 size,
+			       UINT32 type)
+{
+	int x = *e820_nr_map;
+
+	if (x == E820_MAX) {
+		Print(L"Too many entries in the memory map!\n");
+		return;
+	}
+
+	if (e820_map[x-1].addr + e820_map[x-1].size == start
+	    && e820_map[x-1].type == type)
+		e820_map[x-1].size += size;
+	else {
+		e820_map[x].addr = start;
+		e820_map[x].size = size;
+		e820_map[x].type = type;
+		(*e820_nr_map)++;
+	}
+}
+
+void fill_e820map(boot_params_t *bp, mmap_desc_t *mdesc)
+{
+	int nr_map, e820_nr_map = 0, i;
+	UINT64 start, end, size;
+	EFI_MEMORY_DESCRIPTOR	*md, *p;
+	struct e820entry *e820_map;
+
+	nr_map = mdesc->map_size/mdesc->desc_size;
+	e820_map = (struct e820entry *)bp->s.e820_map;
+
+	for (i = 0, p = mdesc->md; i < nr_map; i++)
+	{
+		md = p;
+		switch (md->Type) {
+		case EfiACPIReclaimMemory:
+			add_memory_region(e820_map, &e820_nr_map,
+					  md->PhysicalStart,
+					  md->NumberOfPages << EFI_PAGE_SHIFT,
+					  E820_ACPI);
+			break;
+		case EfiRuntimeServicesCode:
+		case EfiRuntimeServicesData:
+		case EfiReservedMemoryType:
+		case EfiMemoryMappedIO:
+		case EfiMemoryMappedIOPortSpace:
+		case EfiUnusableMemory:
+		case EfiPalCode:
+			add_memory_region(e820_map, &e820_nr_map,
+					  md->PhysicalStart,
+					  md->NumberOfPages << EFI_PAGE_SHIFT,
+					  E820_RESERVED);
+			break;
+		case EfiLoaderCode:
+		case EfiLoaderData:
+		case EfiBootServicesCode:
+		case EfiBootServicesData:
+		case EfiConventionalMemory:
+			start = md->PhysicalStart;
+			size = md->NumberOfPages << EFI_PAGE_SHIFT;
+			end = start + size;
+			/* Fix up for BIOS that claims RAM in 640K-1MB region */
+			if (start < 0x100000ULL && end > 0xA0000ULL) {
+				if (start < 0xA0000ULL) {
+					/* start < 640K
+					 * set memory map from start to 640K
+					 */
+					add_memory_region(e820_map,
+							  &e820_nr_map,
+							  start,
+							  0xA0000ULL-start,
+							  E820_RAM);
+				}
+				if (end <= 0x100000ULL)
+					continue;
+				/* end > 1MB
+				 * set memory map avoiding 640K to 1MB hole
+				 */
+				start = 0x100000ULL;
+				size = end - start;
+			}
+			add_memory_region(e820_map, &e820_nr_map,
+					  start, size, E820_RAM);
+			break;
+		case EfiACPIMemoryNVS:
+			add_memory_region(e820_map, &e820_nr_map,
+					  md->PhysicalStart,
+					  md->NumberOfPages << EFI_PAGE_SHIFT,
+					  E820_NVS);
+			break;
+		default:
+			/* We should not hit this case */
+			add_memory_region(e820_map, &e820_nr_map,
+					  md->PhysicalStart,
+					  md->NumberOfPages << EFI_PAGE_SHIFT,
+					  E820_RESERVED);
+			break;
+		}
+		p = NextMemoryDescriptor(p, mdesc->desc_size);
+	}
+	bp->s.e820_nrmap = e820_nr_map;
+}
+
+/*
  * IA-32 specific boot parameters initialization routine
  */
 INTN
@@ -213,9 +464,11 @@ sysdeps_create_boot_params(
 	bp->s.unused_2 = 0;
 	ZeroMem(bp->s.unused_3, sizeof bp->s.unused_3);
 	ZeroMem(bp->s.unused_4, sizeof bp->s.unused_4);
-	ZeroMem(bp->s.unused_5, sizeof bp->s.unused_5);
+	ZeroMem(&bp->s.unused_51, sizeof bp->s.unused_51);
+	ZeroMem(bp->s.unused_52, sizeof bp->s.unused_52);
 	bp->s.unused_6 = 0;
 	bp->s.unused_7 = 0;
+	ZeroMem(bp->s.unused_8, sizeof bp->s.unused_8);
 
 	/*
 	 * Tell kernel this was loaded by an advanced loader type.
@@ -310,7 +563,7 @@ sysdeps_create_boot_params(
 	/*
 	 * EFI loader signature 
 	 */
-	CopyMem(bp->s.efi_loader_sig, EFI_LOADER_SIG, 4);
+	CopyMem(bp->s.efi_loader_sig, EFI_LOADER_SIG_IA32, 4);
 
 	/*
 	 * Kernel entry point.
@@ -402,6 +655,7 @@ sysdeps_create_boot_params(
 		CHECK_OFFSET(loader_start, 0x1D8, L"%xh");
 		CHECK_OFFSET(loader_size, 0x1DC, L"%xh");
 		CHECK_OFFSET(alt_mem_k, 0x1E0, L"%xh");
+		CHECK_OFFSET(e820_nrmap, 0x1E8, L"%xh");
 		CHECK_OFFSET(setup_sectors, 0x1F1, L"%xh");
 		CHECK_OFFSET(mount_root_rdonly, 0x1F2, L"%xh");
 		CHECK_OFFSET(sys_size, 0x1F4, L"%xh");
@@ -426,6 +680,7 @@ sysdeps_create_boot_params(
 		CHECK_OFFSET(bootsect_helper, 0x220, L"%xh");
 		CHECK_OFFSET(heap_end_ptr, 0x224, L"%xh");
 		CHECK_OFFSET(cmdline_addr, 0x228, L"%xh");
+		CHECK_OFFSET(e820_map, 0x2D0, L"'%-2560.2560a'");
 
 		if (test) {
 			ERR_PRT((L"Boot sector and/or setup parameter alignment error."));
@@ -439,6 +694,8 @@ sysdeps_create_boot_params(
 	 * Do this last so that any other cursor positioning done
 	 * in the fill routine gets accounted for.
 	 */
+
+	if (!get_video_info(bp)) goto do_memmap;
 
 	efi_status = ST->ConOut->QueryMode(
 		ST->ConOut,
@@ -488,6 +745,7 @@ sysdeps_create_boot_params(
 	bp->s.vesa_seg = 0;
 	bp->s.vesa_off = 0;
 
+do_memmap:
 	/*
 	 * Get memory map description and cookie for ExitBootServices()
 	 */
@@ -503,6 +761,10 @@ sysdeps_create_boot_params(
 	bp->s.efi_mem_desc_size = mdesc.desc_size;
 	bp->s.efi_mem_desc_ver = mdesc.desc_version;
 	bp->s.efi_sys_tbl = (UINTN)systab;
+	/* Now that we have EFI memory map, convert it to E820 map
+	 * and update the bootparam accordingly
+	 */
+	fill_e820map(bp, &mdesc);
 	
 	return 0;
 }

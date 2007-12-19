@@ -1,3 +1,27 @@
+2007-12-19 Jason Fleischli <jason.fleischli@hp.com>
+	* MORE PATCHES FROM INTEL FOR IA32 X86_64.
+	* Fix compile warning for cmdline_addr assignment.
+	* Fix an issue caused by uninitialized e820_nr_map in fill_e820map.
+	* On some machines, there are too many EFI memory map entries, so that,
+	  the number of E820 map entries converted from EFI memory map exceeds
+	  the limit (128). This patch fixes this bug by merging consecutive
+	  memory map entries with the same type.
+	* CL_MAGIC is not supported by 32-bit boot protocol. So, the kernel
+	  command line passing code is changed accordingly.
+	* EFI-2.0 boot support patches have been accepted into Linux kernel
+	  2.6.24-rc4 and EFI runtime service patches have been accepted by
+	  Linux kernel 2.6.24-rc4-mm1. There are some changes during the 
+	  merging, so there are some updates for elilo ia32/x86_64 too.
+	* The x86_64 boot parameters of Linux kernel is rearranged to line up
+	  with ia32 boot parameters.
+	* The boot loader signature of IA32 and x86_64 is redefined to
+	  make it possible for Linux kernel to distinguish whether the 
+	  underlying firmware is EFI 32 or EFI 64.
+	* The EFI framebuffer type ID is changed in Linux kernel to
+	  conform to Linux kernel framebuffer type ID grouping rules. So the 
+	  EFI framebuffer type ID setting code in ELILO is changed accordingly.
+	* E820 memory map is added to IA32 to make it possible for
+	  Linux kernel not to depend on EFI memory map on EFI 32.
 2007-09-27 Jason Fleischli <jason.fleischli@hp.com>
 	* updating changelog for last commit that was omitted
 	* incorporating AGriffis patches to enhance parsing

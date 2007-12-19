@@ -180,28 +180,27 @@ typedef union x86_64_boot_params {
 /* 0xA0 */	UINT16 mca_info_len;		/* LDR */
 /* 0xA2 */	UINT8 mca_info_buf[0x10];	/* LDR */
 
-/* 0xB2 */	UINT8 unused_4[0x106];		/* unused */
-
-/* Address of the EFI system table. */
-/* 0x1B8 */	UINT64 efi_sys_tbl;		/* LDR */
+/* 0xB2 */	UINT8 unused_4[0x10E];		/* unused */
 
 /* EFI boot loader signature. */
 /* 0x1C0 */	UINT8 efi_loader_sig[4];	/* LDR */
-#define EFI_LOADER_SIG		"EFIL"
+#define EFI_LOADER_SIG_X64	"EL64"
+
+/* Address of the EFI system table. */
+/* 0x1C4 */	UINT32 efi_sys_tbl;		/* LDR */
 
 /* EFI memory descriptor size. */
-/* 0x1C4 */	UINT32 efi_mem_desc_size;	/* LDR */
+/* 0x1C8 */	UINT32 efi_mem_desc_size;	/* LDR */
 
 /* EFI memory descriptor version. */
-/* 0x1C8 */	UINT32 efi_mem_desc_ver;	/* LDR */
+/* 0x1CC */	UINT32 efi_mem_desc_ver;	/* LDR */
 
 /* Address & size of EFI memory map. */
-/* 0x1CC */	UINT32 efi_mem_map_size;	/* LDR */
-/* 0x1D0 */	UINT64 efi_mem_map;		/* LDR */
+/* 0x1D0 */	UINT32 efi_mem_map;		/* LDR */
+/* 0x1D4 */	UINT32 efi_mem_map_size;	/* LDR */
 
-/* Address & size of loader. */
-/* 0x1D8 */	UINT32 loader_start;		/* LDR */
-/* 0x1DC */	UINT32 loader_size;		/* LDR */
+/* 0x1D8 */	UINT32 efi_sys_tbl_hi;		/* LDR */
+/* 0x1DC */	UINT32 efi_mem_map_hi;		/* LDR */
 
 /* Available contiguous extended memory in KB. */
 /* 0x1E0 */	UINT32 alt_mem_k;		/* LDR */
@@ -394,6 +393,9 @@ start_kernel(VOID *kentry, boot_params_t *bp)
 	 */
 
 	MEMCPY(high_base_mem, bp, 0x4000);
+
+	bp = (boot_params_t *)high_base_mem;
+	bp->s.cmdline_addr = high_base_mem + bp->s.cmdline_offset;
 
 	/*
 	 * Initialize Linux GDT.

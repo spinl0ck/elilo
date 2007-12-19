@@ -255,7 +255,7 @@ static INTN get_video_info(boot_params_t * bp) {
 		return -1;
 	}
 		
-	bp->s.is_vga = 0x24;
+	bp->s.is_vga = 0x70;
 	bp->s.orig_cursor_col = 0;
 	bp->s.orig_cursor_row = 0;
 	bp->s.orig_video_page = 0;
@@ -326,30 +326,56 @@ static INTN get_video_info(boot_params_t * bp) {
  * This code is based on a Linux kernel patch submitted by Edgar Hucek
  */
 
+/* Add a memory region to the e820 map */
+static void add_memory_region (struct e820entry *e820_map,
+			       int *e820_nr_map,
+			       unsigned long long start,
+			       unsigned long size,
+			       unsigned int type)
+{
+	int x = *e820_nr_map;
+
+	if (x == E820_MAX) {
+		Print(L"Too many entries in the memory map!\n");
+		return;
+	}
+
+	if (e820_map[x-1].addr + e820_map[x-1].size == start
+	    && e820_map[x-1].type == type)
+		e820_map[x-1].size += size;
+	else {
+		e820_map[x].addr = start;
+		e820_map[x].size = size;
+		e820_map[x].type = type;
+		(*e820_nr_map)++;
+	}
+}
+
 void fill_e820map(boot_params_t *bp, mmap_desc_t *mdesc)
 {
-	int nr_map, i;
+	int nr_map, e820_nr_map = 0, i;
 	UINT64 start, end, size;
 	EFI_MEMORY_DESCRIPTOR	*md, *p;
 	struct e820entry *e820_map;
 
 	nr_map = mdesc->map_size/mdesc->desc_size;
 	e820_map = (struct e820entry *)bp->s.e820_map;
-	bp->s.e820_nrmap = nr_map;
 			
 	for (i = 0, p = mdesc->md; i < nr_map; i++)
 	{
 		md = p;
 		switch (md->Type) {
 		case EfiACPIReclaimMemory:
-			e820_map->addr = md->PhysicalStart;
-			e820_map->size = md->NumberOfPages << EFI_PAGE_SHIFT;
-			e820_map->type = E820_ACPI;
+			add_memory_region(e820_map, &e820_nr_map,
+					  md->PhysicalStart,
+					  md->NumberOfPages << EFI_PAGE_SHIFT,
+					  E820_ACPI);
 			break;
 		case EfiRuntimeServicesCode:
-			e820_map->addr = md->PhysicalStart;
-			e820_map->size = md->NumberOfPages << EFI_PAGE_SHIFT;
-			e820_map->type = E820_EXEC_CODE;
+			add_memory_region(e820_map, &e820_nr_map,
+					  md->PhysicalStart,
+					  md->NumberOfPages << EFI_PAGE_SHIFT,
+					  E820_EXEC_CODE);
 			break;
 		case EfiRuntimeServicesData:
 		case EfiReservedMemoryType:
@@ -357,9 +383,10 @@ void fill_e820map(boot_params_t *bp, mmap_desc_t *mdesc)
 		case EfiMemoryMappedIOPortSpace:
 		case EfiUnusableMemory:
 		case EfiPalCode:
-			e820_map->addr = md->PhysicalStart;
-			e820_map->size = md->NumberOfPages << EFI_PAGE_SHIFT;
-			e820_map->type = E820_RESERVED;
+			add_memory_region(e820_map, &e820_nr_map,
+					  md->PhysicalStart,
+					  md->NumberOfPages << EFI_PAGE_SHIFT,
+					  E820_RESERVED);
 			break;
 		case EfiLoaderCode:
 		case EfiLoaderData:
@@ -375,10 +402,11 @@ void fill_e820map(boot_params_t *bp, mmap_desc_t *mdesc)
 					/* start < 640K
 					 * set memory map from start to 640K
 					 */
-					e820_map->addr = start;
-					e820_map->size = 0xA0000ULL-start;
-					e820_map->type = E820_RAM;
-					e820_map++;
+					add_memory_region(e820_map,
+							  &e820_nr_map,
+							  start,
+							  0xA0000ULL-start,
+							  E820_RAM);
 				}
 				if (end <= 0x100000ULL)
 					continue;
@@ -388,27 +416,28 @@ void fill_e820map(boot_params_t *bp, mmap_desc_t *mdesc)
 				start = 0x100000ULL;
 				size = end - start;
 			}
-			e820_map->addr = start;
-			e820_map->size = size;
-			e820_map->type = E820_RAM;
+			add_memory_region(e820_map, &e820_nr_map,
+					  start, size, E820_RAM);
 			break;
 		case EfiACPIMemoryNVS:
-			e820_map->addr = md->PhysicalStart;
-			e820_map->size = md->NumberOfPages << EFI_PAGE_SHIFT;
-			e820_map->type = E820_NVS;
+			add_memory_region(e820_map, &e820_nr_map,
+					  md->PhysicalStart,
+					  md->NumberOfPages << EFI_PAGE_SHIFT,
+					  E820_NVS);
 			break;
 		default:
 			/* We should not hit this case */
-			e820_map->addr = md->PhysicalStart;
-			size = md->NumberOfPages << EFI_PAGE_SHIFT;
-			e820_map->type = E820_RESERVED;
+			add_memory_region(e820_map, &e820_nr_map,
+					  md->PhysicalStart,
+					  md->NumberOfPages << EFI_PAGE_SHIFT,
+					  E820_RESERVED);
 			break;
 		}
-		e820_map++;
 		p = NextMemoryDescriptor(p, mdesc->desc_size); 
 	}
-	
+	bp->s.e820_nrmap = e820_nr_map;
 }
+
 /*
  * x86_64 specific boot parameters initialization routine
  */
@@ -464,10 +493,10 @@ sysdeps_create_boot_params(
 	 */
 	bp->s.unused_1 = 0;
 	bp->s.unused_2 = 0;
-	ZeroMem(bp->s.unused_3, sizeof bp->s.unused_3);
-	ZeroMem(bp->s.unused_4, sizeof bp->s.unused_4);
-	ZeroMem(bp->s.unused_51, sizeof bp->s.unused_51);
-	ZeroMem(bp->s.unused_52, sizeof bp->s.unused_52);
+	ZeroMem(&bp->s.unused_3, sizeof bp->s.unused_3);
+	ZeroMem(&bp->s.unused_4, sizeof bp->s.unused_4);
+	ZeroMem(&bp->s.unused_51, sizeof bp->s.unused_51);
+	ZeroMem(&bp->s.unused_52, sizeof bp->s.unused_52);
 	bp->s.unused_6 = 0;
 	bp->s.unused_7 = 0;
 	ZeroMem(bp->s.unused_8, sizeof bp->s.unused_8);
@@ -564,7 +593,7 @@ sysdeps_create_boot_params(
 	/*
 	 * EFI loader signature 
 	 */
-	CopyMem(bp->s.efi_loader_sig, EFI_LOADER_SIG, 4);
+	CopyMem(bp->s.efi_loader_sig, EFI_LOADER_SIG_X64, 4);
 
 	/*
 	 * Kernel entry point.
@@ -647,14 +676,14 @@ sysdeps_create_boot_params(
 		CHECK_OFFSET(hd1_info, 0x90, L"");
 		CHECK_OFFSET(mca_info_len, 0xA0, L"%xh");
 		CHECK_OFFSET(mca_info_buf, 0xA2, L"");
-		CHECK_OFFSET(efi_sys_tbl, 0x1B8, L"%xh");
 		CHECK_OFFSET(efi_loader_sig, 0x1C0, L"'%-4.4a'");
-		CHECK_OFFSET(efi_mem_desc_size, 0x1C4, L"%xh");
-		CHECK_OFFSET(efi_mem_desc_ver, 0x1C8, L"%xh");
-		CHECK_OFFSET(efi_mem_map_size, 0x1CC, L"%xh");
+		CHECK_OFFSET(efi_sys_tbl, 0x1C4, L"%xh");
+		CHECK_OFFSET(efi_mem_desc_size, 0x1C8, L"%xh");
+		CHECK_OFFSET(efi_mem_desc_ver, 0x1CC, L"%xh");
 		CHECK_OFFSET(efi_mem_map, 0x1D0, L"%xh");
-		CHECK_OFFSET(loader_start, 0x1D8, L"%xh");
-		CHECK_OFFSET(loader_size, 0x1DC, L"%xh");
+		CHECK_OFFSET(efi_mem_map_size, 0x1D4, L"%xh");
+		CHECK_OFFSET(efi_sys_tbl_hi, 0x1D8, L"%xh");
+		CHECK_OFFSET(efi_mem_map_hi, 0x1DC, L"%xh");
 		CHECK_OFFSET(alt_mem_k, 0x1E0, L"%xh");
 		CHECK_OFFSET(setup_sectors, 0x1F1, L"%xh");
 		CHECK_OFFSET(mount_root_rdonly, 0x1F2, L"%xh");
@@ -758,11 +787,13 @@ do_memmap:
 		return -1;
 	}
 	*cookie = mdesc.cookie;
-	bp->s.efi_mem_map = (UINTN)mdesc.md;
+	bp->s.efi_mem_map = (UINT32)(unsigned long)mdesc.md;
 	bp->s.efi_mem_map_size = mdesc.map_size;
 	bp->s.efi_mem_desc_size = mdesc.desc_size;
 	bp->s.efi_mem_desc_ver = mdesc.desc_version;
-	bp->s.efi_sys_tbl = (UINTN)systab;
+	bp->s.efi_sys_tbl = (UINT32)(unsigned long)systab;
+	bp->s.efi_mem_map_hi = (unsigned long)mdesc.md >> 32;
+	bp->s.efi_sys_tbl_hi = (unsigned long)systab >> 32;
 	/* Now that we have EFI memory map, convert it to E820 map 
 	 * and update the bootparam accordingly
 	 */

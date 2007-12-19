@@ -59,6 +59,26 @@
  */
 
 #pragma pack(1)
+
+/* Definitions for converting EFI memory map to E820 map for Linux
+ * These definitions are from include/linux/asm-x86/e820.h
+ * The structure ia32_boot_params below is updated to accommodate E820 map
+ * EFI memory map is converted to E820 map in this structure and passed
+ * to Linux. This way the OS does not need to do the conversion.
+ */
+
+#define E820_RAM        1
+#define E820_RESERVED   2
+#define E820_ACPI       3
+#define E820_NVS        4
+#define E820_MAX	128
+
+struct e820entry {
+	UINT64 addr;	/* start of memory segment */
+	UINT64 size;	/* size of memory segment */
+	UINT32 type;	/* type of memory segment */
+} __attribute__((packed));
+
 typedef union ia32_boot_params {
 	UINT8 raw[0x2000];
 	struct {
@@ -155,7 +175,7 @@ typedef union ia32_boot_params {
 
 /* EFI boot loader signature. */
 /* 0x1C0 */	UINT8 efi_loader_sig[4];	/* LDR */
-#define EFI_LOADER_SIG		"EFIL"
+#define EFI_LOADER_SIG_IA32		"EL32"
 
 /* Address of the EFI system table. */
 /* 0x1C4 */	UINT32 efi_sys_tbl;		/* LDR */
@@ -177,7 +197,9 @@ typedef union ia32_boot_params {
 /* Available contiguous extended memory in KB. */
 /* 0x1E0 */	UINT32 alt_mem_k;		/* LDR */
 
-/* 0x1E4 */	UINT8 unused_5[0x0D];		/* unused */
+/* 0x1E4 */	UINT32 unused_51;		/* unused */
+/* 0x1E8 */	UINT8  e820_nrmap;
+/* 0x1E9 */	UINT32 unused_52[2];		/* unused */
 
 /* Size of setup code in sectors (1 sector == 512 bytes). */
 /* 0x1F1 */	UINT8 setup_sectors;		/* BLD */
@@ -258,6 +280,8 @@ typedef union ia32_boot_params {
 /* 0x226 */	UINT16 unused_7;		/* LDR */
 
 /* 0x228 */	UINT32 cmdline_addr; 		/* LDR */
+/* 0x22C */	UINT32 unused_8[41];
+/* 0x2D0 */	UINT8  e820_map[2560];
 	} s;
 } boot_params_t;
 #pragma pack()
@@ -353,6 +377,9 @@ start_kernel(VOID *kentry, boot_params_t *bp)
 	 */
 
 	MEMCPY(high_base_mem, bp, 0x4000);
+
+	bp = (boot_params_t *)high_base_mem;
+	bp->s.cmdline_addr = high_base_mem + bp->s.cmdline_offset;
 
 	/*
 	 * Initialize Linux GDT.
