@@ -1,3 +1,11 @@
+2008-01-03 Jason Fleischli <jason.fleischli@hp.com>
+	* initrd.c -- Let the allocator decide where to grab the memory from 
+	  the efi memory map. Current start_addr=image->start_addr forces the 
+	  same efi region everytime, and has a 7mb limit. ramdisk (initrd.img) 
+	  files larger than 7MB wouldnt fit into the memory region assumed by 
+	  the image->start_addr resulting in an elilo hang. Leaving start_addr 
+	  NULL at initialization forces alloc_pages to get a memory region 
+	  sufficient for the size of the initrd image.
 2007-12-19 Jason Fleischli <jason.fleischli@hp.com>
 	* bumping version string to 3.8
 2007-12-19 Jason Fleischli <jason.fleischli@hp.com>
