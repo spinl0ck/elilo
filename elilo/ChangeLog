@@ -1,3 +1,11 @@
+2008-01-03 signed off by Jason Fleischli <jason.fleischli@hp.com>
+	* Patch contribution from Scott Davilla <davilla@4pi.com>
+	  when x is zero for the first call to add_memory_region, e820_map[-1] 
+	  will access memory outside the bounds of e820_map. While this does 
+	  not result in any problems as there is a UINT32 unused_8[41] block 
+	  above the e820_map[0] location that should have been zeroed by the 
+	  bootloader, the code should not access outside the bounds of 
+	  structures. 
 2008-01-03 Jason Fleischli <jason.fleischli@hp.com>
 	* initrd.c -- Let the allocator decide where to grab the memory from 
 	  the efi memory map. Current start_addr=image->start_addr forces the 

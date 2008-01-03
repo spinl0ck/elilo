@@ -340,7 +340,7 @@ static void add_memory_region (struct e820entry *e820_map,
 		return;
 	}
 
-	if (e820_map[x-1].addr + e820_map[x-1].size == start
+	if ((x > 0) && e820_map[x-1].addr + e820_map[x-1].size == start
 	    && e820_map[x-1].type == type)
 		e820_map[x-1].size += size;
 	else {
