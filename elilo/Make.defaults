@@ -68,7 +68,7 @@ CPPFLAGS   = -DCONFIG_$(ARCH)
 
 OPTIMFLAGS = -O2 
 DEBUGFLAGS = -Wall
-CFLAGS     = $(OPTIMFLAGS) -fpic -fshort-wchar $(DEBUGFLAGS)
+CFLAGS     = $(OPTIMFLAGS) -fno-strict-aliasing -fpic -fshort-wchar $(DEBUGFLAGS)
 LDFLAGS	   = -nostdlib -znocombreloc
 INSTALL	   = install
 

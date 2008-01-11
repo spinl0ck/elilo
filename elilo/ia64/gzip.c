@@ -161,7 +161,7 @@ gzip_free(void *where)
 int
 fill_inbuf(void)
 {
-	INTN expected, nread;
+	UINTN expected, nread;
 	EFI_STATUS status;
 
 	expected = nread = INBUFSIZE;
@@ -309,7 +309,7 @@ analyze_chunks(void)
  * the relevant header information.
  */
 int
-first_block (const char *buf, long blocksize)
+first_block (const unsigned char *buf, long blocksize)
 {
 	Elf64_Ehdr *elf;
 	Elf64_Phdr *phdrs;
@@ -439,7 +439,7 @@ first_block (const char *buf, long blocksize)
 	if (alloc_kmem((void *)low_addr, pages) == -1) {
 		VOID *new_addr;
 
-		VERB_PRT(1, (L"%s : AllocatePages(%d, 0x%lx) for kernel failed\n", LD_NAME, pages, low_addr));
+		VERB_PRT(1, Print(L"%s : AllocatePages(%d, 0x%lx) for kernel failed\n", LD_NAME, pages, low_addr));
 
 		if (ia64_can_relocate() == 0) {
 			ERR_PRT((L"relocation is disabled, cannot load kernel"));
@@ -464,7 +464,7 @@ first_block (const char *buf, long blocksize)
 		/* unsigned arithmetic */
                 load_offset = (UINTN) (new_addr - ROUNDDOWN((UINTN) low_addr,256*MB));
 
-		VERB_PRT(1, (L"low_addr=0x%lx new_addr=0x%lx offset=0x%lx", low_addr, new_addr, load_offset));
+		VERB_PRT(1, Print(L"low_addr=0x%lx new_addr=0x%lx offset=0x%lx", low_addr, new_addr, load_offset));
 
 		/*
 		 * correct various addresses for non-zero load_offset
@@ -526,7 +526,7 @@ flush_window(void)
 	static const CHAR8 helicopter[4] = { '|' , '/' , '-' , '\\' };
 	static UINTN heli_count;
 	struct segment *cp;
-	char	*src, *dst;
+	unsigned char	*src, *dst;
 	long	cnt;
 
 	if (!outcnt) return;
@@ -565,7 +565,7 @@ tail:
 		file_offset += skip;
 		outcnt      -= skip;
 	}
-	dst = (char *)cp->addr + (file_offset - cp->offset);
+	dst = (unsigned char *)cp->addr + (file_offset - cp->offset);
 
 	cnt = cp->offset + cp->size - file_offset;
 
@@ -582,7 +582,7 @@ tail:
 	/* See if we are at the end of this chunk */
 	if (file_offset == cp->offset + cp->size) {
 		if (cp->bss_sz) {
-			dst = (char *)cp->addr + cp->size;
+			dst = (unsigned char *)cp->addr + cp->size;
 			Memset(dst, 0, cp->bss_sz);
 		}
 		nextchunk();

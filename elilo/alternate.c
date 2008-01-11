@@ -56,7 +56,7 @@ static EFI_GUID altk_guid={0,};
  *	  Please note that no fatal error is reported by this function
  */
 INTN
-alternate_kernel(CHAR16 *buffer, INTN size)
+alternate_kernel(CHAR16 *buffer, UINTN size)
 {
 	EFI_STATUS status;
 	INTN ret = -1;

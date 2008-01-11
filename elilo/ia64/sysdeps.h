@@ -86,7 +86,7 @@ start_kernel(VOID *kentry, VOID *bp)
         asm volatile ("mov r28=%1; br.sptk.few %0" :: "b"(kentry),"r"(bp));
 }
 
-static inline const UINT64
+static inline UINT64
 __ia64_swab64 (UINT64 x)
 {
 	UINT64 result;
@@ -95,13 +95,13 @@ __ia64_swab64 (UINT64 x)
 	return result;
 }
 
-static inline const UINT32
+static inline UINT32
 __ia64_swab32 (UINT32 x)
 {
 	return __ia64_swab64(x) >> 32;
 }
 
-static inline const UINT16
+static inline UINT16
 __ia64_swab16(UINT16 x)
 {
 	return __ia64_swab64(x) >> 48;

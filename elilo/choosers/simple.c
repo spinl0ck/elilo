@@ -220,7 +220,7 @@ display_message(VOID)
 {
 	fops_fd_t fd;
 	EFI_STATUS status;
-	INTN len, i;
+	UINTN len, i;
 	CHAR16 *filename;
 	CHAR8 buf[256];
 

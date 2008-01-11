@@ -132,7 +132,7 @@ check_fpswa(EFI_HANDLE image, EFI_HANDLE dev, CHAR16 *fpswa_file)
 #endif
 	};
 	UINTN j, count = sizeof(fpswa_filenames)/sizeof(CHAR16 *);
-	INTN cookie;
+	UINTN cookie;
 	CHAR16 devname[FILENAME_MAXLEN];
 	
 	if (fpswa_file) {

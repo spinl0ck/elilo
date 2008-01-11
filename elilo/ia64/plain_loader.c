@@ -288,7 +288,7 @@ load_elf(fops_fd_t fd, kdesc_t *kd)
 	if (alloc_kmem(low_addr, pages) == -1) {
 		VOID *new_addr;
 
-		VERB_PRT(1, (L"%s : AllocatePages(%d, 0x%lx) for kernel failed\n", LD_NAME, pages, low_addr));
+		VERB_PRT(1, Print(L"%s : AllocatePages(%d, 0x%lx) for kernel failed\n", LD_NAME, pages, low_addr));
 
 		if (ia64_can_relocate() == 0) {
 			ERR_PRT((L"relocation is disabled, cannot load kernel"));

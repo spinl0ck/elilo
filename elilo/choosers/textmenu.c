@@ -186,12 +186,12 @@ paint_menu(VOID)
 }
 
 static INTN
-read_message_file(INTN msg, INT8 *buf, INTN max)
+read_message_file(INTN msg, UINT8 *buf, UINTN max)
 {
 	CHAR16 *filename;
 	fops_fd_t message_fd;
 	EFI_STATUS status;
-	INTN len = max;
+	UINTN len = max;
 
 	if (msg > 10) return 0;
 

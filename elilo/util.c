@@ -248,7 +248,7 @@ split_args(CHAR16 *buffer, CHAR16 *kname, CHAR16 *args)
 INTN
 read_file(UINTN fd, UINTN total_size, CHAR8 *buffer)
 {
-	INTN size, j=0;
+	UINTN size, j=0;
 	EFI_STATUS status;
 	CHAR16 helicopter[4] = { L'|' , L'/' , L'-' , L'\\' };
 	INTN ret = ELILO_LOAD_SUCCESS;

@@ -183,7 +183,7 @@ extern CHAR16 *get_config_file(VOID);
 extern INTN load_file(CHAR16 *, memdesc_t *);
 
 /* from alternate.c */
-extern INTN alternate_kernel(CHAR16 *, INTN);
+extern INTN alternate_kernel(CHAR16 *, UINTN);
 
 /* from bootparams.c */
 extern VOID *create_boot_params (CHAR16 *, memdesc_t *, memdesc_t *, UINTN *);
