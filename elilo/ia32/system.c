@@ -163,10 +163,11 @@ static INTN get_video_info(boot_params_t * bp) {
         EFI_GUID GopProtocol = EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID;
         EFI_GRAPHICS_OUTPUT_PROTOCOL *Gop_interface;
         EFI_GRAPHICS_OUTPUT_MODE_INFORMATION *Gop_info;
-        EFI_GRAPHICS_OUTPUT_PROTOCOL_MODE   *Gop_mode;
-        EFI_HANDLE *Gop_handle;
+        EFI_GRAPHICS_OUTPUT_PROTOCOL_MODE   *Gop_mode = NULL;
+        EFI_HANDLE *Gop_handle = NULL;
         EFI_STATUS efi_status;
-        UINTN size, size1;
+        UINTN size = 0;
+        UINTN size1;
         UINT8 i;
 
 	efi_status = uefi_call_wrapper(
@@ -204,7 +205,7 @@ static INTN get_video_info(boot_params_t * bp) {
 				3,
 				*Gop_handle,
 				&GopProtocol,
-				&Gop_interface);
+				(VOID **) &Gop_interface);
 
 		if (EFI_ERROR(efi_status)) {
 			continue;
