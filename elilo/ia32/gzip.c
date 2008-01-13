@@ -153,7 +153,7 @@ gzip_free(void *where)
 int
 fill_inbuf(void)
 {
-	INTN expected, nread;
+	UINTN expected, nread;
 	EFI_STATUS status;
 
 	expected = nread = INBUFSIZE;
@@ -277,7 +277,7 @@ analyze_chunks(void)
  * the relevant header information.
  */
 int
-first_block (const char *buf, long blocksize)
+first_block (const unsigned char *buf, long blocksize)
 {
 	Elf32_Ehdr *elf;
 	Elf32_Phdr *phdrs;
@@ -430,7 +430,7 @@ flush_window(void)
 	static const CHAR8 helicopter[4] = { '|' , '/' , '-' , '\\' };
 	static UINTN heli_count;
 	struct segment *cp;
-	char	*src, *dst;
+	unsigned char	*src, *dst;
 	long	cnt;
 
 	if (!outcnt) return;
@@ -468,7 +468,7 @@ tail:
 		file_offset += skip;
 		outcnt      -= skip;
 	}
-	dst = (char *)cp->addr + (file_offset - cp->offset);
+	dst = (unsigned char *)cp->addr + (file_offset - cp->offset);
 	cnt = cp->offset + cp->size - file_offset;
 	if (cnt > outcnt) 
 		cnt = outcnt;
@@ -482,7 +482,7 @@ tail:
 	/* See if we are at the end of this chunk */
 	if (file_offset == cp->offset + cp->size) {
 		if (cp->bss_sz) {
-			dst = (char *)cp->addr + cp->size;
+			dst = (unsigned char *)cp->addr + cp->size;
 			Memset(dst, 0, cp->bss_sz);
 		}
 		nextchunk();
