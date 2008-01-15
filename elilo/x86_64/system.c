@@ -160,7 +160,7 @@ sysdeps_free_boot_params(boot_params_t *bp)
 	mmap_desc_t md;
 
 	ZeroMem(&md, sizeof md);
-	md.md = (VOID *)bp->s.efi_mem_map;
+	md.md = (VOID *)(UINT64)bp->s.efi_mem_map;
 	free_memmap(&md);
 }
 
@@ -189,10 +189,11 @@ static INTN get_video_info(boot_params_t * bp) {
         EFI_GUID GopProtocol = EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID;
         EFI_GRAPHICS_OUTPUT_PROTOCOL *Gop_interface;
         EFI_GRAPHICS_OUTPUT_MODE_INFORMATION *Gop_info;
-        EFI_GRAPHICS_OUTPUT_PROTOCOL_MODE   *Gop_mode;
-        EFI_HANDLE *Gop_handle;
+        EFI_GRAPHICS_OUTPUT_PROTOCOL_MODE   *Gop_mode = NULL;
+        EFI_HANDLE *Gop_handle = NULL;
         EFI_STATUS efi_status;
-        UINTN size, size1;
+        UINTN size = 0;
+        UINTN size1;
         UINT8 i;
 
 	efi_status = uefi_call_wrapper(
@@ -554,7 +555,7 @@ sysdeps_create_boot_params(
 
 	if (initrd->start_addr && initrd->pgcnt) {
 		/* %%TBD - This will probably have to be changed. */
-		bp->s.initrd_start = (UINT32)initrd->start_addr;
+		bp->s.initrd_start = (UINT32)(UINT64)initrd->start_addr;
 		bp->s.initrd_size = (UINT32)(initrd->size);
 		/*
 		 * This is the RAMdisk root device for RedHat 2.2.x
@@ -598,7 +599,7 @@ sysdeps_create_boot_params(
 	/*
 	 * Kernel entry point.
 	 */
-	bp->s.kernel_start = (UINT32)kernel_start;
+	bp->s.kernel_start = (UINT32)(UINT64)kernel_start;
 
 	/*
 	 * When changing stuff in the parameter structure compare

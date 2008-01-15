@@ -370,8 +370,8 @@ start_kernel(VOID *kentry, boot_params_t *bp)
 		UINT32	kernel_entry;
 		UINT16	kernel_cs;
 	} jumpvector;
-	UINTN	njump;
 	VOID 	*jump_start;
+	uint64_t temp;
 
 	/*
 	 * Disable interrupts.
@@ -383,7 +383,8 @@ start_kernel(VOID *kentry, boot_params_t *bp)
 	 */
 
 	if (bp->s.initrd_start) {
-		MEMCPY(INITRD_START, bp->s.initrd_start, bp->s.initrd_size);
+		temp =  bp->s.initrd_start;
+		MEMCPY(INITRD_START, temp , bp->s.initrd_size);
 		bp->s.initrd_start = INITRD_START;
 	}
 	/*
@@ -434,14 +435,15 @@ start_kernel(VOID *kentry, boot_params_t *bp)
 
 	/*
 	 * Jump to kernel entry point.
+	 *
+	 * Cast is to tell gcc that we know we're going from
+	 * 64-bit ptr to 32-bit integer.
 	 */
-	jumpvector.kernel_entry=kentry;
+	jumpvector.kernel_entry=(UINT32)((UINT64)kentry);
 	jumpvector.kernel_cs=0x10;
-	njump = &jumpvector;
 	jump_start = (VOID *)&jumpvector;
 	//asm volatile ( "mov %0, %%rcx" : : "m" (&jumpvector) );
 	asm volatile ( "mov %0, %%rcx" : : "m" (jump_start) );
-	//asm volatile ( "mov %0, %%rcx" : : "m" (njump) );
 	asm volatile ( "ljmp *(%%rcx)" : :);
 	/* Never come back to here. */
 }
