@@ -159,4 +159,4 @@ longjmp:
 	invala			// virt. -> phys. regnum mapping may change
 	mov pr=r24,-1
 	br.ret.dptk.few rp
-	.endp __longjmp
+	.endp longjmp

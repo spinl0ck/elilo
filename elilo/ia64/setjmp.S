@@ -81,6 +81,7 @@ setjmp:
 	.proc __sigsetjmp
 __sigsetjmp:
 	//.prologue ASM_UNW_PRLG_RP|ASM_UNW_PRLG_PFS, ASM_UNW_PRLG_GRSAVE(2)
+	.body
 	alloc loc1=ar.pfs,2,2,2,0
 	mov r16=ar.unat
 	;;
@@ -104,7 +105,6 @@ __sigsetjmp:
 	stf.spill.nta [r8]=f2,32
 	stf.spill.nta [r9]=f3,32
 	mov loc0=rp
-	.body
 	;;
 	stf.spill.nta [r8]=f4,32
 	stf.spill.nta [r9]=f5,32
