@@ -158,13 +158,37 @@ bzImage_probe(CHAR16 *kname)
 	 * Allocate memory for kernel.
 	 */
 
-	if (alloc_kmem(kernel_start, EFI_SIZE_TO_PAGES(kernel_size))) {
-		ERR_PRT((L"Could not allocate kernel memory."));
-		return -1;
-	} else {
-		VERB_PRT(3, Print(L"kernel_start: 0x%x  kernel_size: %d\n", 
-			kernel_start, kernel_size));
+	/*
+	 * Get correct address for kernel from header, if applicable & available. 
+	 */
+	if ((param_start->s.hdr_major == 2) &&
+	    (param_start->s.hdr_minor >= 6) &&
+	    (param_start->s.kernel_start >= DEFAULT_KERNEL_START)) {
+		kernel_start = (void *)param_start->s.kernel_start;
+		VERB_PRT(3, Print(L"kernel header suggests kernel start at address "PTR_FMT"\n", 
+			kernel_start));
 	}
+
+	kernel_load_address = kernel_start;
+
+	if (alloc_kmem(kernel_start, EFI_SIZE_TO_PAGES(kernel_size)) != 0) {
+		/*
+		 * Couldn't get desired address--just load it anywhere and move it later.
+		 * (Easier than relocating kernel, and also works with non-relocatable kernels.)
+		 */
+		if (alloc_kmem_anywhere(&kernel_load_address, EFI_SIZE_TO_PAGES(kernel_size)) != 0) {
+			ERR_PRT((L"Could not allocate memory for kernel."));
+			free(param_start);
+			param_start = NULL;
+			param_size = 0;
+			fops_close(fd);
+			return -1;
+		}
+	}
+
+	VERB_PRT(3, Print(L"kernel_start: "PTR_FMT"  kernel_size: %d  loading at: "PTR_FMT"\n", 
+		kernel_start, kernel_size, kernel_load_address));
+
 	/*
 	 * Now read the rest of the kernel image into memory.
 	 */
@@ -172,7 +196,7 @@ bzImage_probe(CHAR16 *kname)
 	DBG_PRT((L"reading kernel image...\n"));
 
 	size = kernel_size;
-	efi_status = fops_read(fd, kernel_start, &size);
+	efi_status = fops_read(fd, kernel_load_address, &size);
 	if (EFI_ERROR(efi_status) || size < 0x10000) {
 		ERR_PRT((L"Error reading kernel image %s.", kname));
 		free(param_start);
@@ -200,7 +224,7 @@ bzImage_load(CHAR16 *kname, kdesc_t *kd)
 	DBG_PRT((L"load_bzImage_boot()\n"));
 
 	if (!kname || !kd) {
-		ERR_PRT((L"kname=0x%x  kd=0x%x", kname, kd));
+		ERR_PRT((L"kname="PTR_FMT"  kd="PTR_FMT"", kname, kd));
 		free(param_start);
 		param_start = NULL;
 		param_size = 0;
@@ -210,7 +234,7 @@ bzImage_load(CHAR16 *kname, kdesc_t *kd)
 	kd->kstart = kd->kentry = kernel_start;
 	kd->kend = ((UINT8 *)kd->kstart) + kernel_size;
 
-	DBG_PRT((L"kstart=0x%x  kentry=0x%x  kend=0x%x\n", kd->kstart, kd->kentry, kd->kend));
+	DBG_PRT((L"kstart="PTR_FMT"  kentry="PTR_FMT"  kend="PTR_FMT"\n", kd->kstart, kd->kentry, kd->kend));
 
 	return 0;
 }

@@ -53,6 +53,8 @@ elilo_config_t elilo_opt;
 
 EFI_SYSTEM_TABLE *systab;	/* pointer to EFI system table */
 
+extern INTN wait_timeout (UINTN);
+
 /*
  * Load the Linux kernel in memory from the boot media
  * Output:
@@ -127,11 +129,12 @@ kernel_load(EFI_HANDLE image, CHAR16 *kname, kdesc_t *kd, memdesc_t *imem, memde
 			return ELILO_LOAD_RETRY;	
 	}
 
-	VERB_PRT(3, Print(L"kernel loaded in [0x%lx-0x%lx] entry=0x%lx\n", 
-			  (unsigned long)kd->kstart, (unsigned long)kd->kend, (unsigned long)kd->kentry));
+	VERB_PRT(3, Print(L"kernel loaded in [" PTR_FMT "-" PTR_FMT "] entry=" PTR_FMT "\n", 
+			  kd->kstart, kd->kend, kd->kentry));
 
 	if (elilo_opt.initrd[0]) {
 
+		/* ramdisk image is moved to the top of available extended memory later by start_kernel() */
 		if (sysdeps_initrd_get_addr(kd, imem) == -1) goto exit_error;
 
 		switch(load_file(elilo_opt.initrd, imem)) {
@@ -241,6 +244,9 @@ do_launch:
 	r =subst_vars(cmdline_tmp, cmdline, CMDLINE_MAXLEN);
 
 	VERB_PRT(3, Print(L"final cmdline(%d): %s\n", r, cmdline));
+
+	/* Give user time to see the output before launch */
+	if (elilo_opt.debug || elilo_opt.verbose) r = wait_timeout(300);
 
 	/* free resources associated with file accesses (before ExitBootServices) */
 	close_devices();
@@ -455,7 +461,7 @@ efi_main (EFI_HANDLE image, EFI_SYSTEM_TABLE *system_tab)
 		return EFI_LOAD_ERROR;
 	}
 
-	VERB_PRT(5,Print(L"Loaded at 0x%lx size=%d bytes code=%d data=%d\n", info->ImageBase, info->ImageSize, info->ImageCodeType, info->ImageDataType));
+	VERB_PRT(5,Print(L"Loaded at " PTR_FMT " size=%ld bytes code=%d data=%d\n", info->ImageBase, info->ImageSize, info->ImageCodeType, info->ImageDataType));
 	/*
 	 * verify EDD3.0 status. Users may have to reboot 
 	 */
@@ -599,7 +605,7 @@ efi_main (EFI_HANDLE image, EFI_SYSTEM_TABLE *system_tab)
 				goto do_exit;
 		}
 	}
-	DBG_PRT((L"Optind=%d optarg=%x argc=%d", Optind, Optarg, argc));
+	DBG_PRT((L"Optind=%d optarg=" PTR_FMT " argc=%d", Optind, Optarg, argc));
 
 	/*
 	 * we can't defer this phase any longer...

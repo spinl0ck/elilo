@@ -97,7 +97,10 @@ UINTN high_base_mem = 0x90000;
 UINTN high_ext_mem = 32 * 1024 * 1024;
 
 /* This starting address will hold true for all of the loader types for now */
-VOID *kernel_start = (VOID *)0x100000;	/* 1M */
+VOID *kernel_start = (VOID *)DEFAULT_KERNEL_START;
+
+/* The kernel may load elsewhere if EFI firmware reserves kernel_start */
+VOID *kernel_load_address = (VOID *)DEFAULT_KERNEL_START;
 
 VOID *initrd_start = NULL;
 UINTN initrd_size = 0;
@@ -131,16 +134,16 @@ sysdeps_initrd_get_addr(kdesc_t *kd, memdesc_t *imem)
 	DBG_PRT((L"initrd_get_addr()\n"));
 
 	if (!kd || !imem) {
-		ERR_PRT((L"kd=0x%x imem=0x%x", kd, imem));
+		ERR_PRT((L"kd=" PTR_FMT " imem=" PTR_FMT, kd, imem));
 		return -1;
 	}
 
-	VERB_PRT(3, Print(L"kstart=0x%x  kentry=0x%x  kend=0x%x\n", 
+	VERB_PRT(3, Print(L"kstart=" PTR_FMT "  kentry=" PTR_FMT "  kend=" PTR_FMT "\n", 
 		kd->kstart, kd->kentry, kd->kend));
 
 	imem->start_addr = kd->kend;
 
-	VERB_PRT(3, Print(L"initrd start_addr=0x%x pgcnt=%d\n", 
+	VERB_PRT(3, Print(L"initrd start_addr=" PTR_FMT " pgcnt=%d\n", 
 		imem->start_addr, imem->pgcnt));
 
 	return 0;
@@ -154,6 +157,24 @@ sysdeps_free_boot_params(boot_params_t *bp)
 	ZeroMem(&md, sizeof md);
 	md.md = (VOID *)bp->s.efi_mem_map;
 	free_memmap(&md);
+}
+
+static VOID find_bits(unsigned long mask, UINT8 *first, UINT8* len) {
+	unsigned char bit_pos = 0, bit_len = 0;
+	*first =0;
+	*len = 0;
+	if (mask == 0)
+		return;
+	while (!(mask & 0x1)) {
+		mask = mask >> 1;
+		bit_pos++;
+	}
+	while (mask & 0x1) {
+		mask = mask >> 1;
+		bit_len++;
+	}
+	*first = bit_pos;
+	*len = bit_len;
 }
 
 /*
@@ -429,7 +450,7 @@ sysdeps_create_boot_params(
 	DBG_PRT((L"fill_boot_params()\n"));
 
 	if (!bp || !cmdline || !initrd || !cookie) {
-		ERR_PRT((L"bp=0x%x  cmdline=0x%x  initrd=0x%x cookie=0x%x",
+		ERR_PRT((L"bp=" PTR_FMT "  cmdline=" PTR_FMT "  initrd=" PTR_FMT " cookie=" PTR_FMT,
 			bp, cmdline, initrd, cookie));
 
 		if (param_start != NULL) {
@@ -516,7 +537,7 @@ sysdeps_create_boot_params(
 	 * Initial RAMdisk and root device stuff.
 	 */
 
-	DBG_PRT((L"initrd->start_addr=0x%x  initrd->pgcnt=%d\n",
+	DBG_PRT((L"initrd->start_addr=" PTR_FMT "  initrd->pgcnt=%d\n",
 		initrd->start_addr, initrd->pgcnt));
 
 	/* These RAMdisk flags are not needed, just zero them. */
@@ -598,7 +619,7 @@ sysdeps_create_boot_params(
 #define WAIT_FOR_KEY() \
 { \
 	EFI_INPUT_KEY key; \
-	while (ST->ConIn->ReadKeyStroke(ST->ConIn, &key) != EFI_SUCCESS) { \
+	while (uefi_call_wrapper(ST->ConIn->ReadKeyStroke, 2, ST->ConIn, &key) != EFI_SUCCESS) { \
 		; \
 	} \
 }
@@ -698,7 +719,9 @@ sysdeps_create_boot_params(
 
 	if (!get_video_info(bp)) goto do_memmap;
 
-	efi_status = ST->ConOut->QueryMode(
+	efi_status = uefi_call_wrapper(
+		ST->ConOut->QueryMode,
+		4,
 		ST->ConOut,
 		ST->ConOut->Mode->Mode,
 		&cols,

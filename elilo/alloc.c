@@ -105,12 +105,12 @@ alloc(UINTN size, EFI_MEMORY_TYPE type)
 
 	status = uefi_call_wrapper(BS->AllocatePool, 3, type, size, &tmp);
     	if (EFI_ERROR(status)) {
-        	ERR_PRT((L"allocator: AllocatePool(%d, %d, 0x%x) failed (%r)\n", type, size, status));
+        	ERR_PRT((L"allocator: AllocatePool(%d, %d) failed (%r)\n", type, size, status));
 		return NULL;
     	}
 	alloc_add(tmp, size, ALLOC_POOL);
 
-        DBG_PRT((L"alloc: allocated %d bytes @[0x%lx-0x%lx]\n", size, tmp, tmp+size));
+        DBG_PRT((L"alloc: allocated %d bytes @[" PTR_FMT "-" PTR_FMT "]\n", size, tmp, tmp+size));
 
 	return tmp;
 }
@@ -158,10 +158,10 @@ free(VOID *addr)
 		if (p->addr == addr) goto found;
 	}
 	/* not found */
-        VERB_PRT(1, Print(L"allocator: invalid free @ 0x%lx\n", addr));
+        VERB_PRT(1, Print(L"allocator: invalid free @ " PTR_FMT "\n", addr));
 	return;	
 found:
-        DBG_PRT((L"free: %s @0x%lx size=%ld\n", 
+        DBG_PRT((L"free: %s @" PTR_FMT " size=%d\n", 
 		p->type == ALLOC_POOL ? L"Pool": L"Page", 
 		addr, p->size));
 
@@ -195,7 +195,7 @@ free_all(VOID)
 
 	while(used_allocs) {
 
-		DBG_PRT((L"free_all %a @ 0x%lx\n", used_allocs->type == ALLOC_POOL ? "pool" : "pages", used_allocs->addr));
+		DBG_PRT((L"free_all %a @ " PTR_FMT "\n", used_allocs->type == ALLOC_POOL ? "pool" : "pages", used_allocs->addr));
 	
 		if (used_allocs->type == ALLOC_POOL)
 			uefi_call_wrapper(BS->FreePool, 1, used_allocs->addr);
@@ -213,6 +213,19 @@ free_all(VOID)
 }
 
 INTN
+alloc_kmem_anywhere(VOID **start_addr, UINTN pgcnt)
+{
+	void * tmp;
+	if ((tmp = alloc_pages(pgcnt, EfiLoaderData, AllocateAnyPages, *start_addr)) == 0) return -1;
+
+	kmem_addr  = tmp;
+	kmem_pgcnt = pgcnt;
+	*start_addr = tmp;
+
+	return 0;
+}
+
+INTN
 alloc_kmem(VOID *start_addr, UINTN pgcnt)
 {
 	if (alloc_pages(pgcnt, EfiLoaderData, AllocateAddress, start_addr) == 0) return -1;
@@ -226,13 +239,13 @@ alloc_kmem(VOID *start_addr, UINTN pgcnt)
 VOID
 free_kmem(VOID)
 {
-	DBG_PRT((L"free_kmem before (%lx, %ld)\n", kmem_addr, kmem_pgcnt));
+	DBG_PRT((L"free_kmem before (" PTR_FMT ", %d)\n", kmem_addr, kmem_pgcnt));
 	if (kmem_addr && kmem_pgcnt != 0) {
 		free(kmem_addr);
 		kmem_addr  = NULL;
 		kmem_pgcnt = 0;
 	}
-	DBG_PRT((L"free_kmem after (%lx, %ld)\n", kmem_addr, kmem_pgcnt));
+	DBG_PRT((L"free_kmem after (" PTR_FMT ", %d)\n", kmem_addr, kmem_pgcnt));
 }
 
 VOID

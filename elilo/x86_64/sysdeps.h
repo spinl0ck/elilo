@@ -47,6 +47,10 @@
  */
 #define INITRD_START   (50*1024*1024)
 
+/* Default start address for kernel. */
+#define DEFAULT_KERNEL_START   0x100000
+
+
 /*
  * This version must match the one in the kernel.
  *
@@ -307,9 +311,15 @@ typedef union x86_64_boot_params {
 	UINT8 *t = (UINT8 *)(to); \
 	UINT8 *f = (UINT8 *)(from); \
 	UINTN n = cnt; \
-	if (t && f && n) { \
+	if (t && f && n && (t<f)) { \
 		while (n--) { \
 			*t++ = *f++; \
+		} \
+	} else if (t && f && n && (t>f)) { \
+		t += n; \
+		f += n; \
+		while (n--) { \
+			*t-- = *f--; \
 		} \
 	} \
 }
@@ -343,6 +353,7 @@ extern UINTN param_size;
 
 extern VOID *kernel_start;
 extern UINTN kernel_size;
+extern VOID *kernel_load_address;
 
 extern VOID *initrd_start;
 extern UINTN initrd_size;
@@ -379,8 +390,16 @@ start_kernel(VOID *kentry, boot_params_t *bp)
 	asm volatile ( "cli" : : );
 
 	/*
-	 * Relocate initrd, if present.
+	 * Relocate kernel (if needed), and initrd (if present).
+	 * Copy kernel first, in case kernel was loaded overlapping where we're
+	 * planning to copy the initrd.  This assumes that the initrd didn't
+	 * get loaded overlapping where we're planning to copy the kernel, but
+	 * that's pretty unlikely since we couldn't alloc that space for the
+	 * kernel (or the kernel would already be there).
 	 */
+	if (kernel_start != kernel_load_address) {
+		MEMCPY(kernel_start, kernel_load_address, kernel_size);
+	}
 
 	if (bp->s.initrd_start) {
 		temp =  bp->s.initrd_start;

@@ -111,7 +111,7 @@ load_elf(fops_fd_t fd, kdesc_t *kd)
 	}	 
 	VERB_PRT(3, {
 		Print(L"ELF Header information: \n");
-		Print(L"\tEntry point 0x%x\n", (ehdr.e_entry & PADDR_MASK));
+		Print(L"\tEntry point "PTR_FMT"\n", (ehdr.e_entry & PADDR_MASK));
 		Print(L"\t%d program headers\n", ehdr.e_phnum);
 		Print(L"\t%d segment headers\n", ehdr.e_shnum);
 	});
@@ -145,8 +145,8 @@ load_elf(fops_fd_t fd, kdesc_t *kd)
 		paddr = (phdrs[i].p_paddr & PADDR_MASK);
 		memsz = phdrs[i].p_memsz;
 
-		DBG_PRT((L"Phdr %d paddr [0x%x-0x%x] offset 0x%x"
-			" filesz 0x%x memsz=0x%x bss_sz=0x%x p_type=0x%x\n",
+		DBG_PRT((L"Phdr %d paddr ["PTR_FMT"-"PTR_FMT"] offset "PTR_FMT""
+			" filesz "PTR_FMT" memsz="PTR_FMT" bss_sz="PTR_FMT" p_type="PTR_FMT"\n",
 			1+i, paddr, paddr+phdrs[i].p_filesz, phdrs[i].p_offset, 
 			phdrs[i].p_filesz, memsz, 
 			(memsz - phdrs[i].p_filesz), phdrs[i].p_type));
@@ -160,7 +160,7 @@ load_elf(fops_fd_t fd, kdesc_t *kd)
 	}
 
 	if ((UINTN)low_addr & (EFI_PAGE_SIZE - 1)) {
-		ERR_PRT((L"%s : kernel low address 0x%x not page aligned\n", 
+		ERR_PRT((L"%s : kernel low address "PTR_FMT" not page aligned\n", 
 			LD_NAME, low_addr));
 		goto out;
 	}
@@ -176,16 +176,16 @@ load_elf(fops_fd_t fd, kdesc_t *kd)
 	kd->kentry = (VOID *)(ehdr.e_entry & PADDR_MASK);
 	
 	VERB_PRT(3, {
-		Print(L"Lowest PhysAddr: 0x%x\nTotalMemSize:%d bytes (%d pages)\n",
+		Print(L"Lowest PhysAddr: "PTR_FMT"\nTotalMemSize:%d bytes (%d pages)\n",
       			low_addr, total_size, pages);
-		Print(L"Kernel entry @ 0x%x\n", kd->kentry);
+		Print(L"Kernel entry @ "PTR_FMT"\n", kd->kentry);
 	});
 	
 	/* now allocate memory for the kernel at the exact requested spot */
 	if (alloc_kmem(low_addr, pages) == -1) {
-		ERR_PRT((L"%s : AllocatePages(%d, 0x%lx) for kernel failed\n", 
+		ERR_PRT((L"%s : AllocatePages(%d, "PTR_FMT") for kernel failed\n", 
 			LD_NAME, pages, low_addr));
-		ERR_PRT((L"%s : Could not alloc %d pages for the kernel at 0x%lx "
+		ERR_PRT((L"%s : Could not alloc %d pages for the kernel at "PTR_FMT""
 			" and relocation is not not been implemented!\n", 
 			LD_NAME, pages, low_addr));
 		goto load_abort;
@@ -206,7 +206,7 @@ load_elf(fops_fd_t fd, kdesc_t *kd)
 		if (phdrs[i].p_type != PT_LOAD)
 			continue;
 
-		VERB_PRT(3, Print(L"poffs: 0x%x (phdrs[%d].p_offset)\n", 
+		VERB_PRT(3, Print(L"poffs: "PTR_FMT" (phdrs[%d].p_offset)\n", 
 			phdrs[i].p_offset, i));
 
 		filesz = phdrs[i].p_filesz;
@@ -221,9 +221,9 @@ load_elf(fops_fd_t fd, kdesc_t *kd)
 
 		VERB_PRT(4, {
 			Print(L"\nHeader #%d\n", i);
-			Print(L"Offset in file 0x%x\n", phdrs[i].p_offset);
-			Print(L"Physical addr 0x%x\n", low_addr);
-			Print(L"BSS size 0x%x bytes\n", bss_sz);
+			Print(L"Offset in file "PTR_FMT"\n", phdrs[i].p_offset);
+			Print(L"Physical addr "PTR_FMT"\n", low_addr);
+			Print(L"BSS size %d bytes\n", bss_sz);
 		});
 
 		/*

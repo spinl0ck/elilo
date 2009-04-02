@@ -78,7 +78,7 @@ create_boot_params(CHAR16 *args, memdesc_t *initrd, memdesc_t *vmcode, UINTN *co
 		return 0;
 	}
 
-	VERB_PRT(3, Print(L"boot params @ 0x%lx\n", bp));
+	VERB_PRT(3, Print(L"boot params @ " PTR_FMT "\n", bp));
 
 /* XXX: need to fix this for 3.5 */
 #ifdef CONFIG_ia64

@@ -1,3 +1,22 @@
+2008-04-02 signed off by Jason Fleischli <jason.fleischli@hp.com>
+	* elilo 3.10 release commit
+	* Bumped version string to 3.10
+	* added PTR_FMT 32bit & 64bit pointer translation for correct output
+	* elilo hang bugfix x86_64 non-standard kernels with non-traditional start address 
+	  elilo will pull the start address from the kernel elf header for 2.6
+	  or newer kernels, map memory and use that start address, else use standard
+	  1MB default start address. And handle case of overlapping kernels
+	  and initrds in memory. Patch contributor Stuart Hayes @ Dell,
+	  thanks Stuart!
+	* ported kernel start adress fix to ia32
+	* eliminated all possible compiler warnings except those actually
+	  caused by gnu-efi that cant be fixed here.
+	* Debug output improvement, added pauses with visual feedback when
+	  user sets debug & verbose options.
+	* bugfix added missing find_bits function definition back into ia32
+	  subtree
+	* bugfix loader_probe now correctly errors out if no loaders
+	  registered.
 2008-01-11 signed off by Jason Fleischli <jason.fleischli@hp.com>
 	* Various compile warning cleanups.
 2008-01-03 signed off by Jason Fleischli <jason.fleischli@hp.com>

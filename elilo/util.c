@@ -134,8 +134,10 @@ wait_timeout(UINTN timeout)
 			ERR_PRT((L"waitkey WaitForEvent failed %r", status));
 			return -1;
 		}
+		if (timeout % 10 == 1) Print(L".");
 
 	} while (timeout-- && idx == 0);	
+	Print(L"\n");
 
 	/*
 	 * SetTimer(timer, TimerCancel, 0) is causing problems on IA-32 and gcc3
@@ -315,7 +317,7 @@ get_memmap(mmap_desc_t *desc)
 		}
 		desc->map_size += ELILO_MEMMAP_INC;
 	}
-	DBG_PRT((L"final get_memmap map_size=%ld", desc->map_size));
+	DBG_PRT((L"final get_memmap map_size=%d", desc->map_size));
 
 	return 0;
 }

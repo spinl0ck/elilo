@@ -323,7 +323,7 @@ netfs_open(netfs_interface_t *this, CHAR16 *name, UINTN *fd)
 retry:
 	f->netbuf_size = f->netbuf_maxsize;
 
-	DBG_PRT((L"\nbefore netbuf:0x%lx netbuf_size=%ld\n", f->netbuf, f->netbuf_size));
+	DBG_PRT((L"\nbefore netbuf:" PTR_FMT " netbuf_size=%d\n", f->netbuf, f->netbuf_size));
 
 	/* 
 	 * For EFI versions older than 14.61:
@@ -349,7 +349,7 @@ retry:
 			    NULL, 
 			    FALSE);
 
-	DBG_PRT((L"after Mftp=%r netbuf:0x%lx netbuf_size=%ld blocksize=%ld\n", 
+	DBG_PRT((L"after Mftp=%r netbuf:" PTR_FMT " netbuf_size=%d blocksize=%d\n", 
 		status, 
 		f->netbuf, 
 		f->netbuf_size, 

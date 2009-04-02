@@ -38,11 +38,17 @@ loader_ops_t *
 loader_probe(CHAR16 *kname)
 {
 	loader_ops_t *ops;
+	UINTN n = 0;
 
 	for (ops= ldops_list; ops; ops = ops->next) {
+		n++;
+		VERB_PRT(3, Print(L"Probing loader: %s\n", ops->ld_name));
 		if (ops->ld_probe(kname) == 0) {
 			return ops;
 		}
+	}
+	if (!n) {
+		ERR_PRT((L"No loaders registered"));
 	}
 	return NULL;
 }

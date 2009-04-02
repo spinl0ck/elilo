@@ -31,6 +31,12 @@
 
 #include <efi.h>
 
+#ifdef CONFIG_ia32
+#define PTR_FMT L"0x%x"
+#else
+#define PTR_FMT L"0x%lx"
+#endif
+
 #include "elilo_debug.h"
 
 #include "fileops.h"
@@ -150,6 +156,7 @@ extern VOID *alloc_pages(UINTN, EFI_MEMORY_TYPE, EFI_ALLOCATE_TYPE, VOID *);
 extern VOID free_pages(VOID *);
 extern VOID free_all(VOID);
 extern INTN alloc_kmem(VOID *, UINTN);
+extern INTN alloc_kmem_anywhere(VOID **, UINTN);
 extern VOID free_kmem(VOID);
 extern VOID free_all_memory(VOID);
 

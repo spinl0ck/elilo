@@ -297,13 +297,13 @@ first_block (const unsigned char *buf, long blocksize)
 	phnum = elf->e_phnum;
 
 	VERB_PRT(3, { 
-		Print(L"Entry point 0x%lx\n", elf->e_entry);
+		Print(L"Entry point "PTR_FMT"\n", elf->e_entry);
 		Print(L"%d program headers\n", phnum);
 		Print(L"%d segment headers\n", elf->e_shnum);
 	});
 
 	if (offs + phnum * sizeof(*phdrs) > (unsigned) blocksize) {
-		ERR_PRT((L"%s : ELF program headers not in first block (%ld)\n", LD_NAME, offs));
+		ERR_PRT((L"%s : ELF program headers not in first block (%d)\n", LD_NAME, offs));
 		return -1;
 	}
 
@@ -345,15 +345,15 @@ first_block (const unsigned char *buf, long blocksize)
 
 		if (phdrs[i].p_type != PT_LOAD) {
 			CHUNK_NO_LOAD(i); /* mark no load chunk */
-			DBG_PRT((L"%s : skipping segment %ld\n", LD_NAME, i));
+			DBG_PRT((L"%s : skipping segment %d\n", LD_NAME, i));
 			continue;
 		}
 
 		CHUNK_CAN_LOAD(i); /* mark no load chunk */
 
 		VERB_PRT(3, 
-		Print(L"\n%s : segment %ld vaddr [0x%lx-0x%lx] offset %ld filesz %ld "
-			"memsz=%ld bss_sz=%ld\n",
+		Print(L"\n%s : segment %d vaddr ["PTR_FMT"-"PTR_FMT"] offset %d filesz %d "
+			"memsz=%d bss_sz=%d\n",
 			LD_NAME, 1+i, chunks[i].addr, chunks[i].addr+phdrs[i].p_filesz, 
 			chunks[i].offset, chunks[i].size, memsz, chunks[i].bss_sz));
 		
@@ -364,12 +364,12 @@ first_block (const unsigned char *buf, long blocksize)
 	}
 
 	if (low_addr & (EFI_PAGE_SIZE - 1)) {
-		ERR_PRT((L"%s : low_addr not page aligned 0x%lx\n", LD_NAME, low_addr));
+		ERR_PRT((L"%s : low_addr not page aligned "PTR_FMT"\n", LD_NAME, low_addr));
 		goto error;
 	}
 	analyze_chunks();
 
-	DBG_PRT((L"%s : %d program headers entry=0x%lx\nlowest_addr=0x%lx highest_addr=0x%lx\n", 
+	DBG_PRT((L"%s : %d program headers entry=" PTR_FMT "\nlowest_addr="PTR_FMT" highest_addr="PTR_FMT"\n", 
 			LD_NAME,
 			phnum, kernel_entry, low_addr, max_addr));
 
@@ -384,9 +384,9 @@ first_block (const unsigned char *buf, long blocksize)
 
 	/* allocate memory for the kernel */
 	if (alloc_kmem((void *)low_addr, pages) == -1) {
-		ERR_PRT((L"%s : AllocatePages(%d, 0x%lx) for kernel failed\n", 
+		ERR_PRT((L"%s : AllocatePages(%d, "PTR_FMT") for kernel failed\n", 
 			LD_NAME, pages, low_addr));
-		ERR_PRT((L"%s : Could not load kernel at 0x%lx\n", LD_NAME, low_addr));
+		ERR_PRT((L"%s : Could not load kernel at "PTR_FMT"\n", LD_NAME, low_addr));
 		ERR_PRT((L"%s : Bailing\n", LD_NAME));
 		goto error;
 	}
@@ -435,7 +435,7 @@ flush_window(void)
 
 	if (!outcnt) return;
 
-	DBG_PRT((L"%s : flush_window outnct=%d file_offset=%ld\n", LD_NAME, outcnt, file_offset));
+	DBG_PRT((L"%s : flush_window outnct=%d file_offset=%d\n", LD_NAME, outcnt, file_offset));
 
 	Print(L"%c\b",helicopter[heli_count++%4]);
 

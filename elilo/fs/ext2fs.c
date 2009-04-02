@@ -142,7 +142,7 @@ read_bytes(EFI_BLOCK_IO *blkio, UINT32 mediaid, UINTN offset, VOID *addr, UINTN 
 		return ret;
 	}
 
-	DBG_PRT((L"readblock(%x, %d, %d, %d, %x)", blkio, mediaid, base, buffer_size, buffer));
+	DBG_PRT((L"readblock(PTR_FMT ", %d, %ld, %d, " PTR_FMT ")", blkio, mediaid, base, buffer_size, buffer));
 
 	status = uefi_call_wrapper(blkio->ReadBlocks, 5, blkio, mediaid, base, buffer_size, buffer); 
 	if (EFI_ERROR(status)) {
@@ -903,7 +903,7 @@ ext2fs_install_one(EFI_HANDLE dev, VOID **intf)
 	}
 	
 	if (sb.s_magic != EXT2_SUPER_MAGIC) {
-		DBG_PRT((L"bad magic 0x%x\n", sb.s_magic));
+		DBG_PRT((L"bad magic "PTR_FMT"\n", sb.s_magic));
 		return EFI_INVALID_PARAMETER;
 	}
 	

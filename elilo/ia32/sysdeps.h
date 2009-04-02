@@ -35,6 +35,9 @@
 #define ELILO_ARCH	"IA-32" /* ASCII string */
 #define PADDR_MASK	0xfffffff
 
+#define INITRD_START	(15*1024*1024)
+#define DEFAULT_KERNEL_START	0x100000
+
 /* for now use library versions */
 #define Memset(a,v,n)	SetMem((a),(n),(v))
 #define Memcpy(a,b,n)	CopyMem((a),(b),(n))
@@ -299,11 +302,17 @@ typedef union ia32_boot_params {
 	UINT8 *t = (UINT8 *)(to); \
 	UINT8 *f = (UINT8 *)(from); \
 	UINTN n = cnt; \
-	if (t && f && n) { \
-		while (n--) { \
-			*t++ = *f++; \
-		} \
-	} \
+	if (t && f && n && (t<f)) { \
+        	while (n--) { \
+                        *t++ = *f++; \
+                } \
+        } else if (t && f && n && (t>f)) { \
+                t += n; \
+                f += n; \
+                while (n--) { \
+                        *t-- = *f--; \
+                } \
+        } \
 }
 
 #define MEMSET(ptr, size, val) { \
@@ -338,6 +347,7 @@ extern UINTN kernel_size;
 
 extern VOID *initrd_start;
 extern UINTN initrd_size;
+extern VOID *kernel_load_address;
 
 extern dt_addr_t gdt_addr;
 extern dt_addr_t idt_addr;
@@ -357,19 +367,31 @@ extern INTN ia32_use_legacy_free_boot();
 static inline void
 start_kernel(VOID *kentry, boot_params_t *bp)
 {
+	UINT32	temp;
+
 	/*
 	 * Disable interrupts.
 	 */
 	asm volatile ( "cli" : : );
 
-	/*
-	 * Relocate initrd, if present.
-	 */
+        /*
+         * Relocate kernel (if needed), and initrd (if present).
+         * Copy kernel first, in case kernel was loaded overlapping where we're
+         * planning to copy the initrd.  This assumes that the initrd didn't
+         * get loaded overlapping where we're planning to copy the kernel, but
+         * that's pretty unlikely since we couldn't alloc that space for the
+         * kernel (or the kernel would already be there).
+         */
+        if (kernel_start != kernel_load_address) {
+                MEMCPY(kernel_start, kernel_load_address, kernel_size);
+        }
 
-	if (bp->s.initrd_start) {
-		MEMCPY(15 * 1024 * 1024, bp->s.initrd_start, bp->s.initrd_size);
-		bp->s.initrd_start = 15 * 1024 * 1024;
-	}
+        if (bp->s.initrd_start) {
+                temp =  bp->s.initrd_start;
+                MEMCPY(INITRD_START, temp , bp->s.initrd_size);
+                bp->s.initrd_start = INITRD_START;
+        }
+
 	/*
 	 * Copy boot sector, setup data and command line
 	 * to final resting place.  We need to copy

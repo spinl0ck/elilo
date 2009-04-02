@@ -77,9 +77,9 @@ load_file(CHAR16 *filename, memdesc_t *image)
 		         filename));
 		goto error;
 	}
-	VERB_PRT(2, Print(L"%s image: total_size: %ld bytes base: 0x%lx "
+	VERB_PRT(2, Print(L"%s image: total_size: %d bytes base: " PTR_FMT " "
 	                  "pages %d\n", filename, image->size,
-	                  (UINTN)start_addr, pgcnt));
+	                  start_addr, pgcnt));
 
 	Print(L"Loading file %s...", filename);
 

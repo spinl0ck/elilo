@@ -105,7 +105,10 @@ UINTN high_base_mem = 0x90000;
 UINTN high_ext_mem = 32 * 1024 * 1024;
 
 /* This starting address will hold true for all of the loader types for now */
-VOID *kernel_start = (VOID *)0x100000;	/* 1M */
+VOID *kernel_start = (void *)DEFAULT_KERNEL_START;
+
+/* The kernel may load elsewhere if EFI firmware reserves kernel_start */
+VOID *kernel_load_address = DEFAULT_KERNEL_START; 
 
 VOID *initrd_start = NULL;
 UINTN initrd_size = 0;
@@ -139,16 +142,16 @@ sysdeps_initrd_get_addr(kdesc_t *kd, memdesc_t *imem)
 	DBG_PRT((L"initrd_get_addr()\n"));
 
 	if (!kd || !imem) {
-		ERR_PRT((L"kd=0x%x imem=0x%x", kd, imem));
+		ERR_PRT((L"kd="PTR_FMT" imem="PTR_FMT"", kd, imem));
 		return -1;
 	}
 
-	VERB_PRT(3, Print(L"kstart=0x%x  kentry=0x%x  kend=0x%x\n", 
+	VERB_PRT(3, Print(L"kstart="PTR_FMT"  kentry="PTR_FMT"  kend="PTR_FMT"\n", 
 		kd->kstart, kd->kentry, kd->kend));
 
 	imem->start_addr = kd->kend;
 
-	VERB_PRT(3, Print(L"initrd start_addr=0x%x pgcnt=%d\n", 
+	VERB_PRT(3, Print(L"initrd start_addr="PTR_FMT" pgcnt=%d\n", 
 		imem->start_addr, imem->pgcnt));
 
 	return 0;
@@ -460,7 +463,7 @@ sysdeps_create_boot_params(
 	DBG_PRT((L"fill_boot_params()\n"));
 
 	if (!bp || !cmdline || !initrd || !cookie) {
-		ERR_PRT((L"bp=0x%x  cmdline=0x%x  initrd=0x%x cookie=0x%x",
+		ERR_PRT((L"bp="PTR_FMT"  cmdline="PTR_FMT"  initrd="PTR_FMT" cookie="PTR_FMT"",
 			bp, cmdline, initrd, cookie));
 
 		if (param_start != NULL) {
@@ -547,7 +550,7 @@ sysdeps_create_boot_params(
 	 * Initial RAMdisk and root device stuff.
 	 */
 
-	DBG_PRT((L"initrd->start_addr=0x%x  initrd->pgcnt=%d\n",
+	DBG_PRT((L"initrd->start_addr="PTR_FMT"  initrd->pgcnt=%d\n",
 		initrd->start_addr, initrd->pgcnt));
 
 	/* These RAMdisk flags are not needed, just zero them. */
