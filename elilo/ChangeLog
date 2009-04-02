@@ -1,3 +1,5 @@
+2008-01-11 signed off by Jason Fleischli <jason.fleischli@hp.com>
+	* Various compile warning cleanups.
 2008-01-03 signed off by Jason Fleischli <jason.fleischli@hp.com>
 	* Patch contribution from Scott Davilla <davilla@4pi.com>
 	  when x is zero for the first call to add_memory_region, e820_map[-1] 
