@@ -170,7 +170,7 @@ netfs_setdefaults(VOID *intf, config_file_t *config, CHAR16 *kname, UINTN maxlen
 #  if defined(CONFIG_ia64)
 #    define CONFIG_ARCH_EXTENSION L"-ia64.conf\0"
 #  elif defined (CONFIG_ia32)
-#    define CONFIG_ARCH_EXTENSION L"-ia64.conf\0"
+#    define CONFIG_ARCH_EXTENSION L"-ia32.conf\0"
 #  elif defined (CONFIG_x86_64)
 #    define CONFIG_ARCH_EXTENSION L"-x86_64.conf\0"
 #  else
