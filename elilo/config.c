@@ -310,7 +310,8 @@ get_token_core(CHAR16 *str, UINTN maxlen, BOOLEAN rhs)
     CHAR16 *here;
 
     for (;;) {
-	while ((ch = next()), ch == ' ' || ch == '\t' || ch == '\n') if (ch == '\n') line_num++;
+	while ((ch = next()), ch == ' ' || ch == '\r' || ch == '\t' || ch == '\n') if (ch == '\n' || ch == '\r') line_num++;
+	/* '\r' is for windows return chars, config files can be served from windows pxe/tftpboot servers */
 
 	if (ch == CHAR_EOF) return TOK_EOF;
 
@@ -762,7 +763,10 @@ config_parse(VOID)
 
 		if (tok == TOK_EOF) break;
 
-		if (tok == TOK_ERR) return -1;
+		if (tok == TOK_ERR) {
+			Print(L"Bad Token from elilo config file, parser read: %s\n elilo exiting\n", str);
+			return -1;
+		}
 
 		if ( (p = find_option(current_options, str)) == NULL) {
 			config_error(L"Unkown option %s", str);
