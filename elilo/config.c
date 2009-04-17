@@ -255,7 +255,16 @@ next(VOID)
 	back = 0;
 	return ch;
     }
-    return getc();
+/*
+ * config files served from pxe/tftpboot windows servers can contain
+ * extraneous '\r' characters, often the first char in the file, and
+ * we need to simply skip over those and continue on
+ */
+   ch = getc();
+   if(ch == '\r')
+	ch = getc();
+
+   return ch;
 }
 
 /*
@@ -310,14 +319,13 @@ get_token_core(CHAR16 *str, UINTN maxlen, BOOLEAN rhs)
     CHAR16 *here;
 
     for (;;) {
-	while ((ch = next()), ch == ' ' || ch == '\r' || ch == '\t' || ch == '\n') if (ch == '\n' || ch == '\r') line_num++;
-	/* '\r' is for windows return chars, config files can be served from windows pxe/tftpboot servers */
+	while ((ch = next()), ch == ' ' || ch == '\t' || ch == '\n') if (ch == '\n' ) line_num++;
 
 	if (ch == CHAR_EOF) return TOK_EOF;
 
+	/* skip comment line */
 	if (ch != '#') break;
 
-	/* skip comment line */
 	while ((ch = next()), ch != '\n') if (ch == CHAR_EOF) return TOK_EOF;
 	line_num++;
     }
