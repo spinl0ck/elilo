@@ -3,8 +3,11 @@ How to netboot using ELILO
 
 Copyright (C) 2002-2003 Hewlett-Packard Co.
 Contributed by Stephane Eranian <eranian@hpl.hp.com>
+Updated by Jason Fleischli <jason.fleischli@hp.com>
 
-Last updated: 03/08/11
+Last updated: 10/19/2009
+
+x86_64 and uefi support was added @ elilo version 3.8 and linux kernel >= 2.6.24
 
 EFI has full support for the PXE and DHCP protocol. As such 
 it is relatively easy to boot a machine from the network using EFI.
@@ -126,7 +129,7 @@ only on two very common cases:
 
 	   This filename is an opportunity to specify a machine specific configuration file.
 
-   	2) AA[BB[CC]][-ia32|ia64].conf 
+   	2) AA[BB[CC]][-ia32|ia64|x86_64].conf 
            As of version 3.5, elilo will also look for IPv4 class A,B,C
            subnet-specific versions of the config file.  This is useful when you
            want to have a common config file for all machines connected to a
@@ -140,14 +143,14 @@ only on two very common cases:
            config files first (So for example, on an Itanium system,
            "0A0000-ia64.conf" will be tried before "0A0000.conf")
 
-	3) elilo-ia32.config or elilo-ia64.conf
+	3) elilo-ia32.conf, elilo-x86_64.conf, or elilo-ia64.conf
 	   
-	   Depending on the machine (client side) architecture elilo will try the IA-32 or
-	   IA-64 file.
+	   Depending on the machine (client side) architecture elilo will try the matching
+	   architecture specific  filename.
 
 	   This filename is an opportunity to specify a architecture specific configuration file.
 	   This distinction between the architectures is useful when the same TFTP server services
-	   the two types of clients : IA32- and IA-64 machines.
+	   the three types of clients : ia32, x86_64, and ia64 machines.
 
 	 4) elilo.conf
 
@@ -244,7 +247,7 @@ only on two very common cases:
 
   	- use the name provide by the PXE server Layer 1 or
 
-	- elilo-ia64.conf/elilo-ia32.conf or
+	- elilo-ia64.conf/elilo-ia32.conf/elilo-x86_64 or
 
 	- elilo.conf
 
@@ -390,7 +393,7 @@ only on two very common cases:
 
 
  In the case of a DHCP boot, this type of customization makes sense only for
- the shared configuration file, elilo-ia64.conf/elilo-ia32.conf or elilo.conf.
+ the shared configuration file, elilo-ia64.conf/elilo-ia32.conf/elilo-x86_64 or elilo.conf.
  The configuration file based on the IP address (such as C0A80205.conf in this
  case) would provide another way of customizing parameters for a specific
  client (IP address). The same thing holds if the name of the config file 
