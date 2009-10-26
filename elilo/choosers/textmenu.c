@@ -31,6 +31,7 @@
 #include <efilib.h>
 
 #include "elilo.h"
+#include "console.h"
 
 #define MAX_LABELS	64
 #define MSGBUFLEN	4096
@@ -394,6 +395,7 @@ restart:
 	Memset(&elilo_opt.img_opt, 0, sizeof(elilo_opt.img_opt));
 
 	if (elilo_opt.prompt) {
+		console_textmode();
 		ret = select_kernel(label, sizeof(label));
 		if (ret == -1) return -1;
 		argc    = argify(PromptBuf,sizeof(PromptBuf), argv); 
@@ -466,7 +468,7 @@ restart:
 
 	if (elilo_opt.prompt == 0) {
 		/* minimal printing */
-		Print(L"ELILO\n");
+		Print(L"ELILO v%s for EFI/%a\n", ELILO_VERSION, ELILO_ARCH);
 		ret = wait_timeout(elilo_opt.delay);
 		if (ret != 0) {
 			elilo_opt.prompt = 1;

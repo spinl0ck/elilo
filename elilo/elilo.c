@@ -46,7 +46,6 @@
 #include "loader.h"
 #include "config.h" /* for config_init() */
 
-#define ELILO_VERSION			L"3.10"
 #define ELILO_SHARED_CMDLINE_OPTS	L"pPMC:aDhd:i:vVc:E"
 
 elilo_config_t elilo_opt;
@@ -215,7 +214,7 @@ main_loop(EFI_HANDLE dev, CHAR16 **argv, INTN argc, INTN index, EFI_HANDLE image
 	EFI_STATUS status = EFI_SUCCESS;
 	kdesc_t kd;
 	memdesc_t imem, mmem;
-	INTN r;
+	INTN r, retries=0;
 
 	/*
 	 * First place where we potentially do system dependent
@@ -246,7 +245,15 @@ do_launch:
 	VERB_PRT(3, Print(L"final cmdline(%d): %s\n", r, cmdline));
 
 	/* Give user time to see the output before launch */
-	if (elilo_opt.debug || elilo_opt.verbose) r = wait_timeout(300);
+	if (elilo_opt.debug || elilo_opt.verbose) {
+		r = wait_timeout(150);
+	/* have to turn off all console output(except error output) now before final get_mmemap()
+	 * call or it can cause the efi map key to change and the ExitBootSvc call to fail,
+	 * forcing debug and verbose options off is the surest way to enforce this.
+	 */
+		elilo_opt.debug=0;
+		elilo_opt.verbose=0; 
+	}
 
 	/* free resources associated with file accesses (before ExitBootServices) */
 	close_devices();
@@ -254,9 +261,32 @@ do_launch:
 	/* No console output permitted after create_boot_params()! */
 	if ((bp=create_boot_params(cmdline, &imem, &mmem, &cookie)) == 0) goto error;
 
-	/* terminate bootservices */
+	/* terminate bootservices 
+	* efi ExitBootSvcs spec: *note, get_memmap is called by create_boot_params() 
+	* An EFI OS loader must ensure that it has the system's current memory map at the time 
+	* it calls ExitBootServices(). This is done by passing in the current memory map's 
+	* MapKey value as returned by GetMemoryMap(). Care must be taken to ensure that the 
+	* memory map does not change between these two calls. It is suggested that 
+	* GetMemoryMap()be called immediately before calling ExitBootServices(). */
+
+retry:
 	status = uefi_call_wrapper(BS->ExitBootServices, 2, image, cookie);
-	if (EFI_ERROR(status)) goto bad_exit;
+	if (EFI_ERROR(status)) 
+	{
+		ERR_PRT((L"\nExitBootSvcs: failed, memory map has changed.\n"));
+		if (retries < 2)
+		{	
+			ERR_PRT((L"Main_Loop: Retrying,... have to rebuild boot params"));
+			retries++;
+			free_boot_params(bp);
+			if ((bp=create_boot_params(cmdline, &imem, &mmem, &cookie)) == 0) goto error;			
+			goto retry;
+		} else {
+			ERR_PRT((L"\nMain_Loop: tried ExitBootSvcs 3 times... retries exceeded.... giving up\n"));
+			goto bad_exit;
+		}
+	}
+
 
 	start_kernel(kd.kentry, bp);
 	/* NOT REACHED */
@@ -270,6 +300,7 @@ bad_exit:
 error:
 	free_kmem();
 	if (imem.start_addr) free(imem.start_addr);
+	if (mmem.start_addr) free(mmem.start_addr);
 	if (bp) free_boot_params(bp);
 exit_error:
 	return ELILO_LOAD_ERROR;

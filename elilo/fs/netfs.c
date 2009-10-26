@@ -1,6 +1,7 @@
 /*
- *  Copyright (C) 2001-2003 Hewlett-Packard Co.
+ *  Copyright (C) 2001-2009 Hewlett-Packard Co.
  *	Contributed by Stephane Eranian <eranian@hpl.hp.com>
+ *	Contributed by Jason Fleischli <jason.fleischli@hp.com>
  *  Copyright (C) 2006-2009 Intel Corporation
  *	Contributed by Fenghua Yu <fenghua.yu@intel.com>
  *	Contributed by Bibo Mao <bibo.mao@intel.com>
@@ -38,6 +39,13 @@
 
 #define NETFS_DEFAULT_BUFSIZE		16*MB
 #define NETFS_DEFAULT_BUFSIZE_INC	 8*MB
+#define NETFS_DEFAULT_BLOCKSIZE		1024	/* setting to zero is supposed to default the underlying */
+						/* pxe implementation to largest blocksize supported,... */
+						/* in reality on original older efi implementations its */
+						/* never set causing the pxe transfer to timeout. */
+						/* the spec defines the minimum supported blocksize default */
+						/* to be 512 bytes... a bit extreme, 1024 should work for */
+						/* everything  */
 
 #define NETFS_DEFAULT_SERVER_TYPE	EFI_PXE_BASE_CODE_BOOT_TYPE_BOOTSTRAP
 #define NETFS_FD_MAX	2
@@ -221,7 +229,7 @@ netfs_extract_ip(netfs_priv_state_t *nfs)
 	if (pxe->Mode->RouteTableEntries>0) 
 		Memcpy(&nfs->gw_ip, &pxe->Mode->RouteTable[0].GwAddr, sizeof(EFI_IP_ADDRESS)); 
 
-	VERB_PRT(1, Print(L"PXE PxeDiscoverValid: %s\n", pxe->Mode->PxeDiscoverValid?  L"Yes (PXE-aware DHCPD)" : L"No (Regular DHCPD)"));
+	VERB_PRT(1, Print(L"PXE PxeDiscoverValid: %s\n", pxe->Mode->PxeDiscoverValid?  L"Yes (PXE-aware DHCPD)\n" : L"No (Regular DHCPD)\n"));
 #if 0
 	status = BS->HandleProtocol(dev, &PxeCallbackProtocol, (VOID **)&netfs_callback);
 	status = LibInstallProtocolInterfaces(&dev, &PxeCallbackProtocol, &netfs_callback, NULL);
@@ -279,7 +287,9 @@ netfs_open(netfs_interface_t *this, CHAR16 *name, UINTN *fd)
 	netfs_fd_t	   *f;
 	EFI_STATUS	   status;
 	CHAR8		   ascii_name[FILENAME_MAXLEN];
-	UINTN 		   blocksize = 0, prev_netbufsize;
+	UINTN 		   blocksize = NETFS_DEFAULT_BLOCKSIZE;
+	UINTN		   prev_netbufsize, retries = 0;
+	BOOLEAN		   server_provided_filesize = FALSE;
 
 	if (this == NULL || name == NULL || fd == NULL) return EFI_INVALID_PARAMETER;
 
@@ -305,6 +315,7 @@ netfs_open(netfs_interface_t *this, CHAR16 *name, UINTN *fd)
 		return EFI_SUCCESS;
 	}
 	f->netbuf_maxsize = NETFS_DEFAULT_BUFSIZE;
+	f->netbuf_size = 0;
 	
 	if (f->netbuf == NULL && netbuf_alloc(f) == -1) {
 		netfs_fd_free(nfs, f);
@@ -315,58 +326,108 @@ netfs_open(netfs_interface_t *this, CHAR16 *name, UINTN *fd)
 
 	U2ascii(name, ascii_name, FILENAME_MAXLEN);
 
-	VERB_PRT(2, Print(L"downloading %a from %d.%d.%d.%d...", ascii_name, 
+	VERB_PRT(2, Print(L"downloading %a from %d.%d.%d.%d...\n", ascii_name, 
 				nfs->srv_ip.v4.Addr[0], 
 				nfs->srv_ip.v4.Addr[1], 
 				nfs->srv_ip.v4.Addr[2], 
 				nfs->srv_ip.v4.Addr[3]));
 retry:
-	f->netbuf_size = f->netbuf_maxsize;
+	if (retries == 2) {
+		netfs_fd_free(nfs, f);
+		VERB_PRT(2, Print(L"Failed: %r\n", status));
+		return status;
+	}
 
-	DBG_PRT((L"\nbefore netbuf:" PTR_FMT " netbuf_size=%d\n", f->netbuf, f->netbuf_size));
-
-	/* 
-	 * For EFI versions older than 14.61:
-	 *   it seems like there is an EFI bug (or undocumented behavior) when the buffer size
-	 *   is too small AND the blocksize parameter is NULL, i.e., used the largest possible.
-	 *   In this case, Mtftp() never returns EFI_BUFFER_TOO_SMALL but EFI_TIMEOUT instead.
-	 *   This is true for 1.02 and also 1.10 it seems. Here we set it to the minimal value (512).
-	 *
-	 *   Also it seems like on a READ_FILE which returns EFI_BUFFER_TOO_SMALL, the buffersize
-	 *   is NOT updated to reflect the required size for the next attempt.
-	 *
-	 * For EFI versions 14.61 and higher:
-	 *  In case the buffer is too small AND the TFTP server reports the file size (see RFC 2349), 
-	 *  the f->netbuf_size will report the exact size for the buffer.
+/*
+ * netboot bugfix SF tracker 2874380
+ * EFI 1.10 spec
+ * For read operations, the return data will be placed in the buffer specified by BufferPtr. If
+ * BufferSize is too small to contain the entire downloaded file, then
+ * EFI_BUFFER_TOO_SMALL will be returned and BufferSize will be set to zero or the size of
+ * the requested file (the size of the requested file is only returned if the TFTP server supports TFTP
+ * options). If BufferSize is large enough for the read operation, then BufferSize will be set to
+ * the size of the downloaded file, and EFI_SUCCESS will be returned. Applications using the
+ * PxeBc.Mtftp() services should use the get-file-size operations to determine the size of the
+ * downloaded file prior to using the read-file operations—especially when downloading large
+ * (greater than 64 MB) files—instead of making two calls to the read-file operation. Following this
+ * recommendation will save time if the file is larger than expected and the TFTP server does not
+ * support TFTP option extensions. Without TFTP option extension support, the client has to
+ * download the entire file, counting and discarding the received packets, to determine the file size.
+ * ...
+ * For TFTP “get file size” operations, the size of the requested file or directory is returned in
+ * BufferSize, and EFI_SUCCESS will be returned. If the TFTP server does not support options,
+ * the file will be downloaded into a bit bucket and the length of the downloaded file will be returned.
+ */
+	status = uefi_call_wrapper(nfs->pxe->Mtftp, 10, 
+				   nfs->pxe, 
+				   EFI_PXE_BASE_CODE_TFTP_GET_FILE_SIZE, 
+			  	   f->netbuf, 
+			   	   FALSE,
+			   	   &(f->netbuf_size), 	// PXE writes size of file from server here
+			   	   &blocksize, 
+			   	   &nfs->srv_ip, 
+			   	   ascii_name, 
+			   	   NULL, 
+			   	   FALSE);
+	/*
+	 * If options are not supported by this tftp server, according to the spec the file will be
+ 	 * downloaded into a bit bucket, the size calculated by efi fw and returned in the status
+	 * field of this call. YUK!!... in this case we will default to currently allocated max
+	 * if thats still not big enough it will be caught and increased following the read file attempt
+	 * then retried. 
+	 * XXX need to research how this is handled or changed in the latest UEFI spec.
 	 */
+	if (status != EFI_SUCCESS) {
+		f->netbuf_size = f->netbuf_maxsize;
+		VERB_PRT(2, Print(L"setting default buffer size of %d for %a, no filesize recd from tftp server\n",
+				  f->netbuf_size, ascii_name));
+	}
+
+	if (status == EFI_SUCCESS) {
+		server_provided_filesize = TRUE;
+		VERB_PRT(2, Print(L"received file size of %d for %a from tftp server.\n",
+				  f->netbuf_size, ascii_name));
+	}
+
+	if (f->netbuf_size > f->netbuf_maxsize) {	// we need a bigger buffer
+		VERB_PRT(2, Print(L"allocated buffer too small, attempting to increase\n"));
+		f->netbuf_maxsize += f->netbuf_size;
+		free(f->netbuf);
+		f->netbuf = NULL;
+		if (netbuf_alloc(f) == -1) return EFI_OUT_OF_RESOURCES;
+	}
+
+	/* paranoid catch any corner case missed */
+	if (f->netbuf_size == 0) f->netbuf_size = f->netbuf_maxsize;
+
+	DBG_PRT((L"\nbefore read: netbuf:" PTR_FMT " netbuf_size=%d blocksize=%d\n", 
+		f->netbuf, 
+		f->netbuf_size,
+		blocksize));
+
 	prev_netbufsize = f->netbuf_size;
 
-	status = uefi_call_wrapper(nfs->pxe->Mtftp, 10, nfs->pxe, EFI_PXE_BASE_CODE_TFTP_READ_FILE, f->netbuf, FALSE,
-			    &(f->netbuf_size), 
-			    blocksize > 0 ? &blocksize : NULL, 
-			    &nfs->srv_ip, 
-			    ascii_name, 
-			    NULL, 
-			    FALSE);
+	/* now try and download this file from the tftp server */
+	status = uefi_call_wrapper(nfs->pxe->Mtftp, 10, 
+				   nfs->pxe, 
+				   EFI_PXE_BASE_CODE_TFTP_READ_FILE, 
+				   f->netbuf, 
+				   FALSE,
+			   	   &(f->netbuf_size), 
+			   	   &blocksize, 
+			   	   &nfs->srv_ip, 
+			   	   ascii_name, 
+			   	   NULL, 
+			   	   FALSE);
 
-	DBG_PRT((L"after Mftp=%r netbuf:" PTR_FMT " netbuf_size=%d blocksize=%d\n", 
+	DBG_PRT((L"after: status=%r netbuf:" PTR_FMT " netbuf_size=%d blocksize=%d\n", 
 		status, 
 		f->netbuf, 
 		f->netbuf_size, 
 		blocksize));
 
-	if (status == EFI_TIMEOUT && blocksize == 0) {
-		/*
-		 * XXX: if blocksize is not adjusted we could loop forever here
-		 */
-		//blocksize = 512;
-		status = EFI_BUFFER_TOO_SMALL;
-	}
-	/*
-	 * check if we need to increase our buffer size
-	 */
-	if (status == EFI_BUFFER_TOO_SMALL) {
-		DBG_PRT((L"buffer too small, need netbuf_size=%d", f->netbuf_size));
+	if ((status == EFI_TIMEOUT || status == EFI_BUFFER_TOO_SMALL) && !server_provided_filesize) {
+		Print(L"buffer too small, need netbuf_size=%d\n", f->netbuf_size);
 		/*
 		 * if the TFTP server supports TFTP options, then we should
 		 * get the required size. So we test to see if the size
@@ -378,16 +439,22 @@ retry:
 		} else {
 			/* we got an answer from the TFTP server, let's try it */
 			f->netbuf_maxsize = f->netbuf_size;
+			server_provided_filesize = TRUE;
 		}
 		free(f->netbuf);
 
 		f->netbuf = NULL; /* will force reallocation */
 
-		if (netbuf_alloc(f) == 0) goto retry;
+		if (netbuf_alloc(f) == 0) {
+			retries++;
+			goto retry;
+		}
 
-		/* fall through in case of error */
+	} else if (status == EFI_TIMEOUT) {	//if just a simple timeout, buffers are good just retry
+		VERB_PRT(2, Print(L"TFTP returned EFI_TIMEOUT ERROR... %d retries left.\n", (2 - retries)));
+		retries++;
+		goto retry;
 	}
-
 	if (status == EFI_SUCCESS) {
 		/* start at the beginning of the file */
 		f->netbuf_pos = 0;

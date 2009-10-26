@@ -169,10 +169,13 @@ netfs_setdefaults(VOID *intf, config_file_t *config, CHAR16 *kname, UINTN maxlen
 
 #  if defined(CONFIG_ia64)
 #    define CONFIG_ARCH_EXTENSION L"-ia64.conf\0"
+#    define EXTENSION_LENGTH 11
 #  elif defined (CONFIG_ia32)
 #    define CONFIG_ARCH_EXTENSION L"-ia32.conf\0"
+#    define EXTENSION_LENGTH 11
 #  elif defined (CONFIG_x86_64)
 #    define CONFIG_ARCH_EXTENSION L"-x86_64.conf\0"
+#    define EXTENSION_LENGTH 13
 #  else
 #    error "You need to specfy your default arch config file"
 #  endif            
@@ -187,19 +190,19 @@ netfs_setdefaults(VOID *intf, config_file_t *config, CHAR16 *kname, UINTN maxlen
 		StrnCpy(config[0].fname+8, CONFIG_EXTENSION, 6);
 
 		StrnCpy(config[1].fname, str, maxlen-1);
-		StrnCpy(config[1].fname+6, CONFIG_ARCH_EXTENSION, 11);
+		StrnCpy(config[1].fname+6, CONFIG_ARCH_EXTENSION, EXTENSION_LENGTH);
 
 		StrnCpy(config[2].fname, str, maxlen-1);
 		StrnCpy(config[2].fname+6, CONFIG_EXTENSION, 6);
 
 		StrnCpy(config[3].fname, str, maxlen-1);
-		StrnCpy(config[3].fname+4, CONFIG_ARCH_EXTENSION, 11);
+		StrnCpy(config[3].fname+4, CONFIG_ARCH_EXTENSION, EXTENSION_LENGTH);
 
 		StrnCpy(config[4].fname, str, maxlen-1);
 		StrnCpy(config[4].fname+4, CONFIG_EXTENSION, 6);
                 
 		StrnCpy(config[5].fname, str, maxlen-1);
-		StrnCpy(config[5].fname+2, CONFIG_ARCH_EXTENSION, 11);
+		StrnCpy(config[5].fname+2, CONFIG_ARCH_EXTENSION, EXTENSION_LENGTH);
 
 		StrnCpy(config[6].fname, str, maxlen-1);
 		StrnCpy(config[6].fname+2, CONFIG_EXTENSION, 6);

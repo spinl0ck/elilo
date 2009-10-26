@@ -34,7 +34,7 @@
 boot_params_t *param_start = NULL;
 UINTN param_size = 0;
 
-UINTN kernel_size = 0x200000;	/* 2M (largest x86 bzImage kernel image) */
+UINTN kernel_size = 0x400000;	/* 4M (default x86 bzImage size limit) */
 
 static INTN
 bzImage_probe(CHAR16 *kname)

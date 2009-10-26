@@ -26,6 +26,10 @@
 #ifndef __ELILO_DEBUG__
 #define __ELILO_DEBUG__
 
+//#define DEBUG_MEM
+//#define DEBUG_GZIP
+//#define DEBUG_BZ
+
 #define ELILO_DEBUG 1
 
 #define ERR_PRT(a)	do { Print(L"%a(line %d):", __FILE__, __LINE__); Print a; Print(L"\n"); } while (0);

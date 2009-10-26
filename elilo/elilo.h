@@ -29,6 +29,8 @@
 #ifndef __ELILO_H__
 #define __ELILO_H__
 
+#define ELILO_VERSION L"3.12"
+
 #include <efi.h>
 
 #ifdef CONFIG_ia32

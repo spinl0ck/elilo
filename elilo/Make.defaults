@@ -63,7 +63,7 @@ CDIR    := $(shell if [ "$$PWD" != "" ]; then echo $$PWD; else pwd; fi)
 TOPDIR  =
 
 ARCH	   = $(shell uname -m | sed s,i[3456789]86,ia32,)
-INCDIR	   = -I. -I$(TOPDIR) -I$(EFIINC) -I$(EFIINC)/$(ARCH) -I$(EFIINC)/protocol
+INCDIR	   = -I. -I$(TOPDIR) -I$(EFIINC) -I$(EFIINC)/$(ARCH) -I$(EFIINC)/protocol -I$(TOPDIR)/efi110
 CPPFLAGS   = -DCONFIG_$(ARCH) 
 
 OPTIMFLAGS = -O2 

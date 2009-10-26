@@ -32,6 +32,7 @@
 
 #include "elilo.h"
 #include "vars.h"
+#include "console.h"
 
 /* static is ugly but does the job here! */
 static CHAR16 **alt_argv;
@@ -288,6 +289,7 @@ restart:
 	}
 
 	if (elilo_opt.prompt) {
+		console_textmode();
 		ret = select_kernel(buffer, sizeof(buffer));
 		if (ret == -1) return -1;
 		argc    = argify(buffer,sizeof(buffer), argv); 
@@ -355,7 +357,7 @@ restart:
 
 	if (elilo_opt.prompt == 0) {
 		/* minimal printing */
-		Print(L"ELILO\n");
+		Print(L"ELILO v%s for EFI/%a\n", ELILO_VERSION, ELILO_ARCH);
 		ret = wait_timeout(elilo_opt.delay);
 		if (ret != 0) {
 			elilo_opt.prompt = 1;

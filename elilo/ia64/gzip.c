@@ -170,7 +170,9 @@ fill_inbuf(void)
 	if (EFI_ERROR(status)) {
     		error("elilo: Read failed");
 	}
+#ifdef DEBUG_GZIP
 	DBG_PRT((L"%s : read %d bytes of %d bytes\n", LD_NAME, nread, expected));
+#endif
 
 	insize = nread;
 	inptr = 1;
@@ -530,8 +532,9 @@ flush_window(void)
 	long	cnt;
 
 	if (!outcnt) return;
-
+#ifdef DEBUG_GZIP
 	DBG_PRT((L"%s : flush_window outnct=%d file_offset=%ld\n", LD_NAME, outcnt, file_offset));
+#endif
 
 	Print(L"%c\b",helicopter[heli_count++%4]);
 

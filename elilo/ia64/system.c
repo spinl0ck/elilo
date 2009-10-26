@@ -55,7 +55,7 @@ sysdeps_create_boot_params(boot_params_t *bp, CHAR8 *cmdline, memdesc_t *initrd,
 
 	if (get_memmap(&mdesc) == -1) return -1;
 
-	DBG_PRT((L"Got memory map @ 0x%lx (%d bytes)", mdesc.md, mdesc.map_size));
+	DBG_PRT((L"Got memory map @ 0x%lx (%d bytes) with key %d", mdesc.md, mdesc.map_size, mdesc.cookie));
 
 	bp->efi_systab		= (UINTN)systab;
 	bp->efi_memmap		= (UINTN)mdesc.md;
@@ -147,7 +147,7 @@ flush_dcache (CHAR8 *addr, UINT64 len)
   	/* Cache line length is at least 32.  */
 	UINT64 a = (UINT64)addr & ~0x1f;
 
-	VERB_PRT(3, Print(L"Flush 0x%lx-", a));
+	DBG_PRT((L"Flush 0x%lx-", a));
 
 	/* Flush data.  */
 	for (len = (len + 31) & ~0x1f; len > 0; len -= 0x20, a += 0x20)
@@ -155,5 +155,5 @@ flush_dcache (CHAR8 *addr, UINT64 len)
 	/* Sync and serialize.  Maybe extra.  */
 	asm volatile (";; sync.i;; srlz.i;;");
 
-	VERB_PRT(3, Print(L"0x%lx\n", a));
+	DBG_PRT((L"0x%lx\n", a));
 }

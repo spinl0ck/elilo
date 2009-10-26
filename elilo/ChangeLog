@@ -1,3 +1,25 @@
+2009-10-22 signed off by Jason Fleischli <jason.fleischli@hp.com>
+	* elilo 3.12 release commit
+	* Added additional #defines for debug levels to reduce the output
+	* Added Mac console patch rework from Julien Blache @ debian
+	  this fixes the invisible console output from elilo on Macs
+	* Moved static ELILO_VERSION variable from elilo.c to elilo.h
+	  so that elilo will print its version string and arch on startup.
+	* Fixed bug 2825044 ExitBootServices error handling, correctly deal
+	  with changed memory map key if memory map changes from under elilo.
+	* Added memory map key to map debug output.
+	* Fixed bug 2874380 netbooting just flat broken. fixed ia64, x86_64
+	  ia32, fixed handling of server side support of tfpt options (get file size) 
+	  elilo now attempts to get file size before attempting read of file
+	  to set the buffers up correctly and deal with tftp servers that dont
+	  support options extensions a little better.
+	* netboot, fixed bad blocksize handling
+	* netboot, fixed filename length for elilo-x86_64.conf type on tftp
+	  server.
+	* increased bzimage kernel max length sizes to 4mb on i386 and 8mb on
+	  x86_64... this is a legacy design hold over from original design and
+	  needs to be re-written to do dynamic size memory management based on
+	  the size of the actual vmlinuz image, as ia64/gzip does. 
 2008-04-02 signed off by Jason Fleischli <jason.fleischli@hp.com>
 	* elilo 3.10 release commit
 	* Bumped version string to 3.10
