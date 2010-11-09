@@ -41,11 +41,11 @@ StrnCpy(OUT CHAR16 *dst, IN const CHAR16 *src, IN UINTN size)
 {
 	CHAR16 *res = dst;
 
-	while (size-- && (*dst++ = *src++) != CHAR_NULL);
+	while (size && size-- && (*dst++ = *src++) != CHAR_NULL);
 	/*
 	 * does the null padding
 	 */
-	while (size-- > 0) *dst++ = CHAR_NULL;
+	while (size && size-- > 0) *dst++ = CHAR_NULL;
 
 	return res;
 }
@@ -55,11 +55,11 @@ StrnXCpy(OUT CHAR8 *dst, IN const CHAR16 *src, IN UINTN size)
 {
 	CHAR8 *res = dst;
 
-	while (size-- && (*dst++ = (CHAR8)*src++) != '\0');
+	while (size && size-- && (*dst++ = (CHAR8)*src++) != '\0');
 	/*
 	 * does the null padding
 	 */
-	while (size-- > 0) *dst++ = '\0';
+	while (size && size-- > 0) *dst++ = '\0';
 
 	return res;
 }
@@ -76,11 +76,11 @@ strncpya(OUT CHAR8 *dst, IN const CHAR8 *src, IN UINTN size)
 {
 	CHAR8 *res = dst;
 
-	while (size-- && (*dst++ = *src++) != '\0');
+	while (size && size-- && (*dst++ = *src++) != '\0');
 	/*
 	 * does the null padding
 	 */
-	while (size-- > 0) *dst++ = '\0';
+	while (size && size-- > 0) *dst++ = '\0';
 
 	return res;
 }
