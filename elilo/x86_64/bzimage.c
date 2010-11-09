@@ -193,18 +193,20 @@ bzImage_probe(CHAR16 *kname)
 	 * Now read the rest of the kernel image into memory.
 	 */
 
-	DBG_PRT((L"reading kernel image...\n"));
+	Print(L"Loading kernel %s... ", kname);
 
 	size = kernel_size;
 	efi_status = fops_read(fd, kernel_load_address, &size);
 	if (EFI_ERROR(efi_status) || size < 0x10000) {
-		ERR_PRT((L"Error reading kernel image %s.", kname));
+		ERR_PRT((L"Error reading kernel image (0x%x).", efi_status));
 		free(param_start);
 		param_start = NULL;
 		param_size = 0;
 		fops_close(fd);
 		free_kmem();
 		return -1;
+	} else {
+		Print(L" done\n");
 	}
 
 	DBG_PRT((L"kernel image read:  %d bytes, %d Kbytes\n", size, size / 1024));

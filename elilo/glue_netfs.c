@@ -153,6 +153,8 @@ netfs_setdefaults(VOID *intf, config_file_t *config, CHAR16 *kname, UINTN maxlen
 	set_var(VAR_NETFS_DOMAINAME, info.domainame);
 
 	if (info.using_pxe) {
+		DBG_PRT((L"netfs_setdefaults: using_pxe"));
+
 		status = netfs->netfs_query_layer(netfs, 0, NETFS_CONFIG_LAYER, maxlen, config[0].fname);
 		if (EFI_ERROR(status)) {
 			StrnCpy(config[0].fname, NETFS_DEFAULT_CONFIG, maxlen-1);
@@ -181,6 +183,8 @@ netfs_setdefaults(VOID *intf, config_file_t *config, CHAR16 *kname, UINTN maxlen
 #  endif            
 
 #  define CONFIG_EXTENSION L".conf\0"
+
+		DBG_PRT((L"netfs_setdefaults: machine specific (!using_pxe)"));
 		/*
 		 * will try machine/subnet specific files first.
 		 * the filenames are constructed based on the IP(v4) address

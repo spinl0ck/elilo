@@ -81,7 +81,7 @@ elilo.efi: elilo.so
 
 elilo.so: $(FILES)
 
-elilo.o : elilo.c
+elilo.o : elilo.c $(ARCH)/sysdeps.h
 
 fileops.o : Make.defaults
 chooser.o : Make.defaults

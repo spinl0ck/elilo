@@ -110,7 +110,7 @@ alloc(UINTN size, EFI_MEMORY_TYPE type)
     	}
 	alloc_add(tmp, size, ALLOC_POOL);
 #ifdef DEBUG_MEM
-        DBG_PRT((L"alloc: allocated %d bytes @[" PTR_FMT "-" PTR_FMT "]\n", size, tmp, tmp+size));
+        DBG_PRT((L"alloc: allocated %d bytes @[" PTR_FMT "-" PTR_FMT "]", size, tmp, tmp+size));
 #endif
 	return tmp;
 }
@@ -140,7 +140,7 @@ alloc_pages(UINTN pgcnt, EFI_MEMORY_TYPE type, EFI_ALLOCATE_TYPE where, VOID *ad
 
 	alloc_add(addr, pgcnt, ALLOC_PAGES);
 
-        DBG_PRT((L"allocator: allocated %d pages @0x%lx\n", pgcnt, tmp));
+        DBG_PRT((L"allocator: allocated %d pages @" PTR_FMT, pgcnt, tmp));
 
 	return addr;
 }
@@ -162,7 +162,7 @@ free(VOID *addr)
 	return;	
 found:
 #ifdef DEBUG_MEM
-        DBG_PRT((L"free: %s @" PTR_FMT " size=%d\n", 
+        DBG_PRT((L"free: %s @" PTR_FMT " size=%d",
 		p->type == ALLOC_POOL ? L"Pool": L"Page", 
 		addr, p->size));
 #endif
@@ -196,7 +196,7 @@ free_all(VOID)
 
 	while(used_allocs) {
 #ifdef DEBUG_MEM
-		DBG_PRT((L"free_all %a @ " PTR_FMT "\n", used_allocs->type == ALLOC_POOL ? "pool" : "pages", used_allocs->addr));
+		DBG_PRT((L"free_all %a @ " PTR_FMT, used_allocs->type == ALLOC_POOL ? "pool" : "pages", used_allocs->addr));
 #endif	
 		if (used_allocs->type == ALLOC_POOL)
 			uefi_call_wrapper(BS->FreePool, 1, used_allocs->addr);
@@ -241,7 +241,7 @@ VOID
 free_kmem(VOID)
 {
 #ifdef DEBUG_MEM
-	DBG_PRT((L"free_kmem before (" PTR_FMT ", %d)\n", kmem_addr, kmem_pgcnt));
+	DBG_PRT((L"free_kmem before (" PTR_FMT ", %d)", kmem_addr, kmem_pgcnt));
 #endif
 	if (kmem_addr && kmem_pgcnt != 0) {
 		free(kmem_addr);
@@ -249,7 +249,7 @@ free_kmem(VOID)
 		kmem_pgcnt = 0;
 	}
 #ifdef DEBUG_MEM
-	DBG_PRT((L"free_kmem after (" PTR_FMT ", %d)\n", kmem_addr, kmem_pgcnt));
+	DBG_PRT((L"free_kmem after (" PTR_FMT ", %d)", kmem_addr, kmem_pgcnt));
 #endif
 }
 

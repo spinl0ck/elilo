@@ -497,7 +497,7 @@ add_dev_tab(EFI_GUID *proto, EFI_HANDLE boot_handle, UINTN size, fops_fs_glue_t 
 
 			str2 = str == NULL ? L"Unknown" : str;
 
-			DBG_PRT((L"%s : %-8s : %s\n", dev_tab[idx].name,
+			DBG_PRT((L"%s : %-8s : %s", dev_tab[idx].name,
 				(dev_tab[idx].fops ? dev_tab[idx].fops->name: L"N/A"), str2));
 
 			if (str) FreePool(str);

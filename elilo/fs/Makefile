@@ -54,17 +54,13 @@ all: $(TARGET)
 # XXX: does not trigger recompile when changing filesystem selection
 #      without doing make clean.
 #
-$(TARGET): check-filesystems $(TOPDIR)/Make.defaults $(FILES)
+$(TARGET): $(TOPDIR)/Make.defaults $(FILES)
+	@if [ -z "$(FILES)" ]; then \
+		echo "You need to define at least one filesystem in Make.defaults"; \
+		exit 1; \
+	fi
 	$(LD) -r -o $@ $(FILES)
 
 clean:
 	$(RM) -f $(TARGET) $(FILES)
-
-check-filesystems:
-	@if [ -n "$(FILES)" ]; then \
-		exit 0; \
-	else \
-		echo "You need to define at least one filesystem in Make.defaults"; \
-		exit 1; \
-	fi
 

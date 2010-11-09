@@ -42,17 +42,13 @@ TARGET=choosers.o
 
 all: $(TARGET)
 
-$(TARGET): check-choosers $(TOPDIR)/Make.defaults $(FILES)
+$(TARGET): $(TOPDIR)/Make.defaults $(FILES)
+	@if [ -z "$(FILES)" ]; then \
+		echo "You need to define at least one chooser in Make.defaults"; \
+		exit 1; \
+	fi
 	$(LD) -o $@ -r $(FILES)
 
 clean:
 	$(RM) -f $(TARGET) $(FILES)
-	
-check-choosers:
-	@if [ -n "$(FILES)" ]; then \
-		exit 0; \
-	else \
-		echo "You need to define at least one chooser in Make.defaults"; \
-		exit 1; \
-	fi
 
