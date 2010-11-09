@@ -107,12 +107,12 @@ typedef union x86_64_boot_params {
 /* 0x06 */	UINT8 orig_video_mode;		/* LDR */
 /* 0x07 */	UINT8 orig_video_cols;		/* LDR */
 
-/* 0x08 */	UINT16 unused_1;		/* unused */
+/* 0x08 */	UINT16 pad_1;			/* unused */
 
 /* %%TBD */
 /* 0x0A */	UINT16 orig_ega_bx;		/* LDR */
 
-/* 0x0C */	UINT16 unused_2;		/* unused */
+/* 0x0C */	UINT16 pad_2;			/* unused */
 
 /* Screen height before passing control to kernel. */
 /* 0x0E */	UINT8 orig_video_rows;		/* LDR */
@@ -174,7 +174,7 @@ typedef union x86_64_boot_params {
 /* 0x4E */	UINT32 bios_code_len;		/* LDR */
 /* 0x52 */	UINT16 bios_data_len;		/* LDR */
 
-/* 0x54 */	UINT8 unused_3[0x2C];		/* unused */
+/* 0x54 */	UINT8 pad_3[0x2C];		/* unused */
 
 /* %%TBD */
 /* 0x80 */	UINT8 hd0_info[0x10];		/* LDR */
@@ -184,7 +184,7 @@ typedef union x86_64_boot_params {
 /* 0xA0 */	UINT16 mca_info_len;		/* LDR */
 /* 0xA2 */	UINT8 mca_info_buf[0x10];	/* LDR */
 
-/* 0xB2 */	UINT8 unused_4[0x10E];		/* unused */
+/* 0xB2 */	UINT8 pad_4[0x10E];		/* unused */
 
 /* EFI boot loader signature. */
 /* 0x1C0 */	UINT8 efi_loader_sig[4];	/* LDR */
@@ -209,9 +209,9 @@ typedef union x86_64_boot_params {
 /* Available contiguous extended memory in KB. */
 /* 0x1E0 */	UINT32 alt_mem_k;		/* LDR */
 
-/* 0x1E4 */	UINT32 unused_51;		/* unused */
+/* 0x1E4 */	UINT32 pad_51;			/* unused */
 /* 0x1E8 */	UINT8 e820_nrmap;
-/* 0x1E9 */	UINT32 unused_52[2];		/* unused */
+/* 0x1E9 */	UINT32 pad_52[2];		/* unused */
 
 /* Size of setup code in sectors (1 sector == 512 bytes). */
 /* 0x1F1 */	UINT8 setup_sectors;		/* BLD */
@@ -220,15 +220,10 @@ typedef union x86_64_boot_params {
 /* 0x1F2 */	UINT16 mount_root_rdonly;	/* BLD */
 
 /* %%TBD */
-/* 0x1F4 */	UINT16 sys_size;		/* BLD */
+/* 0x1F4 */	UINT32 sys_size;		/* BLD */
 
 /* %%TBD */
-/* 0x1F6 */	UINT16 swap_dev;		/* BLD */
-
-/* %%TBD */
-/* 0x1F8 */	UINT16 ramdisk_flags;		/* BLD */
-#define RAMDISK_PROMPT		0x8000
-#define RAMDISK_LOAD		0x4000
+/* 0x1F8 */	UINT16 ram_size_DNU;		/* BLD */
 
 /* %%TBD */
 /* 0x1FA */	UINT16 video_mode_flag;		/* BLD */
@@ -236,12 +231,8 @@ typedef union x86_64_boot_params {
 /* %%TBD */
 /* 0x1FC */	UINT16 orig_root_dev;		/* BLD */
 
-/* 0x1FE */	UINT8 unused_6;			/* unused */
-
 /* %%TBD */
-/* 0x1FF */	UINT8 aux_dev_info;		/* LDR */
-#define NO_MOUSE		0x00
-#define FOUND_MOUSE		0xAA
+/* 0x1FE */	UINT16 boot_flag;		/* ? */
 
 /* Jump past setup data (not used in EFI). */
 /* 0x200 */	UINT16 jump;			/* BLD */
@@ -283,16 +274,17 @@ typedef union x86_64_boot_params {
 /* 0x21C */	UINT32 initrd_size;		/* LDR */
 
 /* %%TBD */
-/* 0x220 */	UINT32 bootsect_helper;		/* BLD */
+/* 0x220 */	UINT32 bootsect_helper_DNU;	/* BLD */
 
 /* %%TBD */
 /* 0x224 */	UINT16 heap_end_ptr;		/* LDR */
 
 /* %%TBD */
-/* 0x226 */	UINT16 unused_7;		/* LDR */
+/* 0x226 */	UINT8 ext_loader_ver;		/* LDR */
+/* 0x227 */	UINT8 ext_loader_type;		/* LDR */
 
 /* 0x228 */	UINT32 cmdline_addr; 		/* LDR */
-/* 0x22C */	UINT32 unused_8[41];
+/* 0x22C */	UINT32 pad_8[41];
 /* 0x2D0 */	UINT8  e820_map[2560];
 	} s;
 } boot_params_t;

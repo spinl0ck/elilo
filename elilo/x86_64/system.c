@@ -493,17 +493,9 @@ sysdeps_create_boot_params(
 	hdr_version = (bp->s.hdr_major << 8) | bp->s.hdr_minor;
 
 	/*
-	 * Clear out unused memory in boot sector image.
+	 * Do NOT clear out unknown memory in boot sector image.
+	 * This breaks boot protocol >= 2.10 (2.6.31).
 	 */
-	bp->s.unused_1 = 0;
-	bp->s.unused_2 = 0;
-	ZeroMem(&bp->s.unused_3, sizeof bp->s.unused_3);
-	ZeroMem(&bp->s.unused_4, sizeof bp->s.unused_4);
-	ZeroMem(&bp->s.unused_51, sizeof bp->s.unused_51);
-	ZeroMem(&bp->s.unused_52, sizeof bp->s.unused_52);
-	bp->s.unused_6 = 0;
-	bp->s.unused_7 = 0;
-	ZeroMem(bp->s.unused_8, sizeof bp->s.unused_8);
 
 	/*
 	 * Tell kernel this was loaded by an advanced loader type.
@@ -553,19 +545,14 @@ sysdeps_create_boot_params(
 	DBG_PRT((L"initrd->start_addr="PTR_FMT"  initrd->pgcnt=%d\n",
 		initrd->start_addr, initrd->pgcnt));
 
-	/* These RAMdisk flags are not needed, just zero them. */
-	bp->s.ramdisk_flags = 0;
+	/* These RAMdisk flags are not needed, just zero them. NOT!*/
+	/* 'ramdisk_flags' (@0x1F8) is called 'ram_size' in the meantime, */
+	/* see Documentation/x86/boot.txt. */
 
 	if (initrd->start_addr && initrd->pgcnt) {
 		/* %%TBD - This will probably have to be changed. */
 		bp->s.initrd_start = (UINT32)(UINT64)initrd->start_addr;
 		bp->s.initrd_size = (UINT32)(initrd->size);
-		/*
-		 * This is the RAMdisk root device for RedHat 2.2.x
-		 * kernels (major 0x01, minor 0x00).
-		 */
-
-		bp->s.orig_root_dev = 0x0100;
 	} else {
 		bp->s.initrd_start = 0;
 		bp->s.initrd_size = 0;
@@ -588,11 +575,6 @@ sysdeps_create_boot_params(
 	 */
 	bp->s.mca_info_len = 0;
 	ZeroMem(bp->s.mca_info_buf, sizeof bp->s.mca_info_buf);
-
-	/*
-	 * Pointing device presence.  The kernel will detect this.
-	 */
-	bp->s.aux_dev_info = NO_MOUSE;
 
 	/*
 	 * EFI loader signature 
@@ -692,11 +674,9 @@ sysdeps_create_boot_params(
 		CHECK_OFFSET(setup_sectors, 0x1F1, L"%xh");
 		CHECK_OFFSET(mount_root_rdonly, 0x1F2, L"%xh");
 		CHECK_OFFSET(sys_size, 0x1F4, L"%xh");
-		CHECK_OFFSET(swap_dev, 0x1F6, L"%xh");
-		CHECK_OFFSET(ramdisk_flags, 0x1F8, L"%xh");
 		CHECK_OFFSET(video_mode_flag, 0x1FA, L"%xh");
 		CHECK_OFFSET(orig_root_dev, 0x1FC, L"%xh");
-		CHECK_OFFSET(aux_dev_info, 0x1FF, L"%xh");
+		CHECK_OFFSET(boot_flag, 0x1FE, L"%xh");
 		CHECK_OFFSET(jump, 0x200, L"%xh");
 		CHECK_OFFSET(setup_sig, 0x202, L"'%-4.4a'");
 		CHECK_OFFSET(hdr_minor, 0x206, L"%xh");
@@ -710,9 +690,9 @@ sysdeps_create_boot_params(
 		CHECK_OFFSET(kernel_start, 0x214, L"%xh");
 		CHECK_OFFSET(initrd_start, 0x218, L"%xh");
 		CHECK_OFFSET(initrd_size, 0x21C, L"%xh");
-		CHECK_OFFSET(bootsect_helper, 0x220, L"%xh");
 		CHECK_OFFSET(heap_end_ptr, 0x224, L"%xh");
 		CHECK_OFFSET(cmdline_addr, 0x228, L"%xh");
+		CHECK_OFFSET(e820_map, 0x2D0, L"%xh");
 
 		if (test) {
 			ERR_PRT((L"Boot sector and/or setup parameter alignment error."));
