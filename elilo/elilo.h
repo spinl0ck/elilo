@@ -65,7 +65,8 @@
 #define ELILO_DEFAULT_TIMEOUT	ELILO_TIMEOUT_INFINITY
 #define ELILO_TIMEOUT_INFINITY	(~0UL)
 
-#define CMDLINE_MAXLEN		512 /* needed by ia32 */
+#define CMDLINE_MAXLEN		2048
+#define PATHNAME_MAXLEN		512
 #define FILENAME_MAXLEN		256
 #define MAX_ARGS		256
 /* Just pick an arbitrary number that's high enough for now :o) */

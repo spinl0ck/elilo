@@ -41,8 +41,8 @@ static VOID
 display_label_info(CHAR16 *name)
 {
 	CHAR16 *desc;
-	CHAR16 initrd_name[CMDLINE_MAXLEN];
-	CHAR16 vmcode_name[CMDLINE_MAXLEN];
+	CHAR16 initrd_name[PATHNAME_MAXLEN];
+	CHAR16 vmcode_name[PATHNAME_MAXLEN];
 	CHAR16 options_tmp[CMDLINE_MAXLEN];
 	CHAR16 options[CMDLINE_MAXLEN];
 	CHAR16 kname[FILENAME_MAXLEN];
@@ -254,10 +254,10 @@ simple_choose(CHAR16 **argv, INTN argc, INTN index, CHAR16 *kname, CHAR16 *cmdli
 #	define BOOT_IMG_STR	L"BOOT_IMAGE="
 	CHAR16 buffer[CMDLINE_MAXLEN];
 	CHAR16 alt_buffer[CMDLINE_MAXLEN];
-	CHAR16 initrd_name[CMDLINE_MAXLEN];
-	CHAR16 vmcode_name[CMDLINE_MAXLEN];
+	CHAR16 initrd_name[PATHNAME_MAXLEN];
+	CHAR16 vmcode_name[PATHNAME_MAXLEN];
 	CHAR16 args[CMDLINE_MAXLEN];
-	CHAR16 devname[CMDLINE_MAXLEN];
+	CHAR16 devname[PATHNAME_MAXLEN];
 	CHAR16 dpath[FILENAME_MAXLEN];
 	CHAR16 *slash_pos, *colon_pos, *backslash_pos;
 	UINTN len;

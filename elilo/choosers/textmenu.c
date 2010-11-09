@@ -363,10 +363,10 @@ textmenu_choose(CHAR16 **argv, INTN argc, INTN index, CHAR16 *kname, CHAR16 *cmd
 {	
 #	define BOOT_IMG_STR	L"BOOT_IMAGE="
 	CHAR16 label[CMDLINE_MAXLEN];
-	CHAR16 initrd_name[CMDLINE_MAXLEN];
-	CHAR16 vmcode_name[CMDLINE_MAXLEN];
+	CHAR16 initrd_name[PATHNAME_MAXLEN];
+	CHAR16 vmcode_name[PATHNAME_MAXLEN];
 	CHAR16 args[CMDLINE_MAXLEN];
-	CHAR16 devname[CMDLINE_MAXLEN];
+	CHAR16 devname[PATHNAME_MAXLEN];
 	CHAR16 dpath[FILENAME_MAXLEN];
 	CHAR16 *slash_pos, *colon_pos, *backslash_pos;
 	UINTN len;

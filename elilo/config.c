@@ -56,7 +56,7 @@
  */
 #define ELILO_DEFAULT_CONFIG	L"elilo.conf"
 
-#define MAX_STRING	CMDLINE_MAXLEN
+#define MAX_STRING	512
 #define CONFIG_BUFSIZE	512	/* input buffer size */
 
 /*
@@ -71,7 +71,7 @@ typedef struct boot_image {
 	struct boot_image *next;
 	CHAR16	label[MAX_STRING];
 	CHAR16	kname[FILENAME_MAXLEN];
-	CHAR16  options[MAX_STRING];
+	CHAR16  options[CMDLINE_MAXLEN];
 	CHAR16	initrd[FILENAME_MAXLEN];
 	CHAR16	vmcode[FILENAME_MAXLEN];
 	CHAR16	root[FILENAME_MAXLEN];
@@ -100,7 +100,7 @@ typedef struct {
 	CHAR16		root[FILENAME_MAXLEN];	/* globally defined root fs */
 	CHAR16		initrd[FILENAME_MAXLEN];/* globally defined initrd  */
 	CHAR16		vmcode[FILENAME_MAXLEN];/* globally defined boot-time module  */
-	CHAR16		options[MAX_STRING];
+	CHAR16		options[CMDLINE_MAXLEN];
 	CHAR16		default_image_name[MAX_STRING];
 	CHAR16		message_file[MAX_MESSAGES][FILENAME_MAXLEN]; 
 	CHAR16		chooser[FILENAME_MAXLEN];/* which image chooser to use */

@@ -93,7 +93,7 @@ do_kernel_load(CHAR16 *kname, kdesc_t *kd)
 INTN
 kernel_load(EFI_HANDLE image, CHAR16 *kname, kdesc_t *kd, memdesc_t *imem, memdesc_t *mmem)
 {
-	CHAR16 kernel[CMDLINE_MAXLEN];
+	CHAR16 kernel[FILENAME_MAXLEN];
 
 	/*
 	 * Do the vm image switch here
