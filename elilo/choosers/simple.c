@@ -290,8 +290,9 @@ restart:
 
 	if (elilo_opt.prompt) {
 		console_textmode();
-		ret = select_kernel(buffer, sizeof(buffer));
+		ret = select_kernel(buffer, CMDLINE_MAXLEN);
 		if (ret == -1) return -1;
+		/* this function takes really the number of bytes ... */
 		argc    = argify(buffer,sizeof(buffer), argv); 
 		index   = 0;
 	}
