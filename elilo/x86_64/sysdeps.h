@@ -284,7 +284,11 @@ typedef union x86_64_boot_params {
 /* 0x227 */	UINT8 ext_loader_type;		/* LDR */
 
 /* 0x228 */	UINT32 cmdline_addr; 		/* LDR */
-/* 0x22C */	UINT32 pad_8[41];
+/* 0x22C */	UINT32 initrd_addr_max; 	/* BLD */
+/* 0x230 */	UINT32 kernel_alignment;	/* BLD */
+/* 0x234 */	UINT8 relocatable_kernel;	/* BLD */
+/* 0x235 */	UINT8 pad_8[3];
+/* 0x238 */	UINT32 pad_9[38];
 /* 0x2D0 */	UINT8  e820_map[2560];
 	} s;
 } boot_params_t;
@@ -374,7 +378,6 @@ start_kernel(VOID *kentry, boot_params_t *bp)
 		UINT16	kernel_cs;
 	} jumpvector;
 	VOID 	*jump_start;
-	uint64_t temp;
 
 	/*
 	 * Disable interrupts.
@@ -382,22 +385,16 @@ start_kernel(VOID *kentry, boot_params_t *bp)
 	asm volatile ( "cli" : : );
 
 	/*
-	 * Relocate kernel (if needed), and initrd (if present).
-	 * Copy kernel first, in case kernel was loaded overlapping where we're
-	 * planning to copy the initrd.  This assumes that the initrd didn't
-	 * get loaded overlapping where we're planning to copy the kernel, but
-	 * that's pretty unlikely since we couldn't alloc that space for the
-	 * kernel (or the kernel would already be there).
+	 * Relocate kernel (if needed).
+	 * This assumes that the initrd didn't get loaded overlapping where
+	 * we're planning to copy the kernel, but that's pretty unlikely
+	 * since we couldn't alloc that space for the kernel (or the kernel
+	 * would already be there).
 	 */
 	if (kernel_start != kernel_load_address) {
 		MEMCPY(kernel_start, kernel_load_address, kernel_size);
 	}
 
-	if (bp->s.initrd_start) {
-		temp =  bp->s.initrd_start;
-		MEMCPY(INITRD_START, temp , bp->s.initrd_size);
-		bp->s.initrd_start = INITRD_START;
-	}
 	/*
 	 * Copy boot sector, setup data and command line
 	 * to final resting place.  We need to copy

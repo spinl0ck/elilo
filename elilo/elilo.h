@@ -54,6 +54,10 @@
 #define ROUNDUP(x,a)	(((x) + (a) - 1) & ~((a) - 1))
 #define ROUNDDOWN(x,a)  ((x) & ~((a) - 1))
 
+#ifndef UINT32_MAX
+#define UINT32_MAX	((UINT32)-1)
+#endif
+
 /*
  * Elilo Boot modes
  */
@@ -213,6 +217,7 @@ extern CHAR16 *sysdeps_get_cmdline_opts(VOID);
 extern INTN sysdeps_getopt(INTN, INTN, CHAR16 *);
 extern VOID sysdeps_print_cmdline_opts(VOID);
 extern INTN sysdeps_register_options(VOID);
+extern VOID *sysdeps_checkfix_initrd(VOID *, memdesc_t *);
 
 #define	CHAR_SLASH	L'/'
 #define CHAR_BACKSLASH	L'\\'

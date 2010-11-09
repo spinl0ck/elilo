@@ -169,7 +169,7 @@ bzImage_probe(CHAR16 *kname)
                         kernel_start));
         }
 
-        kernel_load_address = kernel_start;
+        kernel_load_address = NULL; /* allocate anywhere! */
 
         if (alloc_kmem(kernel_start, EFI_SIZE_TO_PAGES(kernel_size)) != 0) {
                 /*

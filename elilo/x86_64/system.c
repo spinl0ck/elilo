@@ -105,10 +105,10 @@ UINTN high_base_mem = 0x90000;
 UINTN high_ext_mem = 32 * 1024 * 1024;
 
 /* This starting address will hold true for all of the loader types for now */
-VOID *kernel_start = (void *)DEFAULT_KERNEL_START;
+VOID *kernel_start = (VOID *)DEFAULT_KERNEL_START;
 
 /* The kernel may load elsewhere if EFI firmware reserves kernel_start */
-VOID *kernel_load_address = DEFAULT_KERNEL_START; 
+VOID *kernel_load_address = (VOID *)DEFAULT_KERNEL_START;
 
 VOID *initrd_start = NULL;
 UINTN initrd_size = 0;
@@ -131,10 +131,8 @@ sysdeps_init(EFI_HANDLE dev)
 /*
  * initrd_get_addr()
  *	Compute a starting address for the initial RAMdisk image.
- *	For now, this image is placed immediately after the end of
- *	the kernel memory.  Inside the start_kernel() code, the
- *	RAMdisk image will be relocated to the top of available
- *	extended memory.
+ *	For now we suggest 'initrd_addr_max' with room for 32MB,
+ *	as image->pgcnt is not initialized yet.
  */
 INTN
 sysdeps_initrd_get_addr(kdesc_t *kd, memdesc_t *imem)
@@ -146,15 +144,59 @@ sysdeps_initrd_get_addr(kdesc_t *kd, memdesc_t *imem)
 		return -1;
 	}
 
-	VERB_PRT(3, Print(L"kstart="PTR_FMT"  kentry="PTR_FMT"  kend="PTR_FMT"\n", 
-		kd->kstart, kd->kentry, kd->kend));
+	VERB_PRT(3, Print(L"initrd_addr_max="PTR_FMT" reserve=%d\n",
+		param_start->s.initrd_addr_max, 32*MB));
 
-	imem->start_addr = kd->kend;
+	imem->start_addr = (VOID *)
+		(((UINT64)param_start->s.initrd_addr_max - 32*MB + 1)
+		& ~EFI_PAGE_MASK);
 
 	VERB_PRT(3, Print(L"initrd start_addr="PTR_FMT" pgcnt=%d\n", 
 		imem->start_addr, imem->pgcnt));
 
 	return 0;
+}
+
+
+/*
+ * checkfix_initrd()
+ *	Check and possibly fix allocation of initrd memory.
+ */
+VOID *
+sysdeps_checkfix_initrd(VOID *start_addr, memdesc_t *imem)
+{
+	UINTN pgcnt =  EFI_SIZE_TO_PAGES(imem->size);
+	UINT64 initrd_addr_max = (UINT64)param_start->s.initrd_addr_max;
+	UINT64 ki_max = initrd_addr_max - imem->size + 1;
+	VOID *ki_max_addr;
+
+	VERB_PRT( 3, Print(L"loadfile: start_addr="PTR_FMT
+		" ki_max_addr="PTR_FMT"\n", start_addr, (VOID *)ki_max));
+	if (ki_max > UINT32_MAX) {
+		ERR_PRT((L"Force kernel specified initrd_addr_max="PTR_FMT
+			" below 4GB\n", (VOID *)initrd_addr_max));
+		ki_max = UINT32_MAX - imem->size + 1;
+	}
+	ki_max_addr = (VOID *)ki_max;
+
+	if ((UINT64)start_addr > ki_max) {
+		VERB_PRT(1, Print(L"initrd start_addr="PTR_FMT" above "
+			"limit="PTR_FMT"\n", start_addr, ki_max_addr));
+		free(start_addr);
+		start_addr = NULL;
+	}
+	/* so either the initial allocation failed or it's been to high! */
+	if (start_addr == NULL) {
+		start_addr = alloc_pages(pgcnt, EfiLoaderData,
+			AllocateMaxAddress, ki_max_addr);
+	}
+	if ((UINT64)start_addr > ki_max) {
+		ERR_PRT((L"Failed to allocate %d pages below %dMB",
+			pgcnt, (param_start->s.initrd_addr_max+1)>>20));
+		free(start_addr);
+		start_addr = NULL;
+	}
+	return start_addr;
 }
 
 VOID
@@ -550,6 +592,11 @@ sysdeps_create_boot_params(
 	/* see Documentation/x86/boot.txt. */
 
 	if (initrd->start_addr && initrd->pgcnt) {
+		if ( (UINT64)initrd->start_addr > UINT32_MAX ) {
+			ERR_PRT((L"Start of initrd out of reach (>4GB)."));
+			free_kmem();
+			return -1;
+		}
 		/* %%TBD - This will probably have to be changed. */
 		bp->s.initrd_start = (UINT32)(UINT64)initrd->start_addr;
 		bp->s.initrd_size = (UINT32)(initrd->size);
@@ -584,6 +631,11 @@ sysdeps_create_boot_params(
 	/*
 	 * Kernel entry point.
 	 */
+	if ( (UINT64)kernel_start != (UINT32)(UINT64)kernel_start ) {
+		ERR_PRT((L"Start of kernel (will be) out of reach (>4GB)."));
+		free_kmem();
+		return -1;
+	}
 	bp->s.kernel_start = (UINT32)(UINT64)kernel_start;
 
 	/*

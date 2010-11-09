@@ -140,6 +140,12 @@ sysdeps_initrd_get_addr(kdesc_t *kd, memdesc_t *imem)
 	return 0;
 }
 
+VOID *
+sysdeps_checkfix_initrd(VOID *start_addr, memdesc_t *imem)
+{
+	return start_addr;
+}
+
 /* Flush data cache [addr; addr + len], and sync with icache.  */
 void
 flush_dcache (CHAR8 *addr, UINT64 len)

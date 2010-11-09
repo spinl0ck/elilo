@@ -217,7 +217,15 @@ INTN
 alloc_kmem_anywhere(VOID **start_addr, UINTN pgcnt)
 {
 	void * tmp;
-	if ((tmp = alloc_pages(pgcnt, EfiLoaderData, AllocateAnyPages, *start_addr)) == 0) return -1;
+	/*
+	 * During "AllocateAnyPages" *start_addr will be ignored.
+	 * Therefore we can safely subvert it to reuse this function with
+	 * an alloc_kmem_anyhwere_below() semantic...
+	 */
+	tmp = alloc_pages(pgcnt, EfiLoaderData,
+			(*start_addr) ? AllocateMaxAddress : AllocateAnyPages,
+			*start_addr);
+	if (tmp == NULL) return -1;
 
 	kmem_addr  = tmp;
 	kmem_pgcnt = pgcnt;

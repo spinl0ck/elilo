@@ -41,7 +41,11 @@ INTN
 load_file(CHAR16 *filename, memdesc_t *image)
 {
 	EFI_STATUS status;
-	VOID *start_addr = NULL;
+	/*
+	 * Actually using the value from sysdeps_initrd_get_addr()
+	 * instead of NULL is no change for ia64!
+	 */
+	VOID *start_addr = image->start_addr;
 	UINTN pgcnt;
 	UINT64 size = 0;
 	fops_fd_t fd;
@@ -71,7 +75,11 @@ load_file(CHAR16 *filename, memdesc_t *image)
 	/* round up to get required number of pages (4KB) */
 	image->pgcnt = pgcnt = EFI_SIZE_TO_PAGES(image->size);
 
-	start_addr = alloc_pages(pgcnt, EfiLoaderData, start_addr ? AllocateAddress : AllocateAnyPages, 0 );
+	start_addr = alloc_pages(pgcnt, EfiLoaderData,
+		start_addr ? AllocateAddress : AllocateAnyPages, start_addr);
+
+	start_addr = sysdeps_checkfix_initrd(start_addr, image);
+
 	if (start_addr == NULL) {
 		ERR_PRT((L"Failed to allocate %d pages for %s image", pgcnt,
 		         filename));

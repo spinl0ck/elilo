@@ -36,6 +36,129 @@ UINTN param_size = 0;
 
 UINTN kernel_size = 0x800000;	/* 8M (default x86_64 bzImage size limit) */
 
+static VOID *
+bzImage_alloc()
+{
+	UINTN pages = EFI_SIZE_TO_PAGES(kernel_size);
+	int reloc_kernel = 0;
+	VOID *kla, *kend = kernel_start + kernel_size;
+	UINT32 kalign, kmask;
+	boot_params_t *ps = param_start;
+
+	/*
+	 * Get address for kernel from header, if applicable & available.
+	 */
+	if ((ps->s.hdr_major < 2) ||
+	    (ps->s.hdr_major == 2 && ps->s.hdr_minor < 5)) {
+		reloc_kernel = 0;
+	} else {
+		if (ps->s.kernel_start >= DEFAULT_KERNEL_START)
+			kernel_start = (void *)(UINT64)ps->s.kernel_start;
+		reloc_kernel = ps->s.relocatable_kernel;
+		kalign = ps->s.kernel_alignment;
+		kmask = kalign - 1;
+		VERB_PRT(3, Print(L"kernel header (%d.%d) suggests kernel "
+			"start at address "PTR_FMT" (%srelocatable!)\n",
+			ps->s.hdr_major, ps->s.hdr_minor, ps->s.kernel_start,
+			(reloc_kernel ? L"": L"not ")));
+	}
+
+	/*
+	 * Best effort for old (< 2.6.20) and non-relocatable kernels
+	 */
+	if (alloc_kmem(kernel_start, pages) == 0) {
+		VERB_PRT(3, Print(L"kernel_start: "PTR_FMT" kernel_size: %d\n",
+			kernel_start, kernel_size));
+		return kernel_start;
+	} else if ( ! reloc_kernel ) {
+		/*
+		 * Couldn't get desired address--just load it anywhere and
+		 * (try to) move it later.  It's the only chance for non-
+		 * relocatable kernels, but it breaks occassionally...
+		 */
+		ERR_PRT((L"Kernel header (%d.%d) suggests kernel "
+			"start at address "PTR_FMT" (non relocatable!)\n"
+			"This address is not available, so an attempt"
+			"is made to copy the kernel there later on\n"
+			"BEWARE: this is unsupported and may not work.  "
+			"Please update your kernel.\n",
+			ps->s.hdr_major, ps->s.hdr_minor, ps->s.kernel_start));
+		kla = (VOID *)(UINT32_MAX - kernel_size);
+		/* NULL would preserve the "anywhere" semantic, */
+		/* but it would not prevent allocation above 4GB! */
+
+		if (alloc_kmem_anywhere(&kla, pages) != 0) {
+			/* out of luck */
+			return NULL;
+		}
+		VERB_PRT(3, Print(L"kernel_start: "PTR_FMT
+			"  kernel_size: %d  loading at: "PTR_FMT"\n",
+			kernel_start, kernel_size, kla));
+		return kla;
+	}
+
+
+	/* Is 'ps->s.kernel_alignment' guaranteed to be sane? */
+	if (kalign < EFI_PAGE_SIZE) {
+		kalign = EFI_PAGE_SIZE;
+		kmask = EFI_PAGE_MASK;
+	}
+	DBG_PRT((L"alignment: kernel=0x%x efi_page=0x%x : 0x%x\n",
+		ps->s.kernel_alignment, EFI_PAGE_SIZE, kalign));
+
+	/*
+	 * Couldn't get the preferred address, but luckily it's
+	 * a relocatable kernel, so ...
+	 *
+	 * 1. use 'find_kernel_memory()' (like Itanium)
+	 * 2. try out the 16 lowest possible aligned addresses (> 0)
+	 * 3. get enough memory to align "creatively"
+	 * 4. forget alignment (and start praying)...
+	 */
+
+	/* 1. */
+	if ((find_kernel_memory(kernel_start, kend, kalign, &kla) != 0) ||
+	    (alloc_kmem(kla, pages) != 0)) {
+		kla = NULL;
+	}
+
+	/* 2. */
+	if ( ! kla && (UINT64)kernel_start < kalign ) {
+		int i;
+		for ( i = 1; i < 16 && !kla; i++ ) {
+			VOID *tmp = (VOID *)((UINT64)kalign * i);
+			if (alloc_kmem(tmp, pages) == 0) {
+				kla =  tmp;
+			}
+		}
+	}
+
+	/* 3. */
+	if ( ! kla ) {
+		UINTN apages = EFI_SIZE_TO_PAGES(kernel_size + kmask);
+		kla = (VOID *)(UINT32_MAX - kernel_size - kmask);
+
+		if (alloc_kmem_anywhere(&kla, apages) == 0) {
+			kla = (VOID *)(((UINT64)kla + kmask) & ~kmask);
+		} else {
+			kla = NULL;
+		}
+	}
+
+	/* 4. last resort */
+	if ( ! kla ) {
+		kla = (VOID *)(UINT32_MAX - kernel_size);
+		if (alloc_kmem_anywhere(&kla, pages) != 0) {
+			return NULL;
+		}
+	}
+
+	kernel_start = kla;
+	VERB_PRT(1, Print(L"relocating kernel_start: "PTR_FMT
+		"  kernel_size: %d\n", kernel_start, kernel_size));
+	return kla;
+}
+
 static INTN
 bzImage_probe(CHAR16 *kname)
 {
@@ -158,36 +281,15 @@ bzImage_probe(CHAR16 *kname)
 	 * Allocate memory for kernel.
 	 */
 
-	/*
-	 * Get correct address for kernel from header, if applicable & available. 
-	 */
-	if ((param_start->s.hdr_major == 2) &&
-	    (param_start->s.hdr_minor >= 6) &&
-	    (param_start->s.kernel_start >= DEFAULT_KERNEL_START)) {
-		kernel_start = (void *)param_start->s.kernel_start;
-		VERB_PRT(3, Print(L"kernel header suggests kernel start at address "PTR_FMT"\n", 
-			kernel_start));
+	kernel_load_address = bzImage_alloc();
+	if ( ! kernel_load_address ) {
+		ERR_PRT((L"Could not allocate memory for kernel."));
+		free(param_start);
+		param_start = NULL;
+		param_size = 0;
+		fops_close(fd);
+		return -1;
 	}
-
-	kernel_load_address = kernel_start;
-
-	if (alloc_kmem(kernel_start, EFI_SIZE_TO_PAGES(kernel_size)) != 0) {
-		/*
-		 * Couldn't get desired address--just load it anywhere and move it later.
-		 * (Easier than relocating kernel, and also works with non-relocatable kernels.)
-		 */
-		if (alloc_kmem_anywhere(&kernel_load_address, EFI_SIZE_TO_PAGES(kernel_size)) != 0) {
-			ERR_PRT((L"Could not allocate memory for kernel."));
-			free(param_start);
-			param_start = NULL;
-			param_size = 0;
-			fops_close(fd);
-			return -1;
-		}
-	}
-
-	VERB_PRT(3, Print(L"kernel_start: "PTR_FMT"  kernel_size: %d  loading at: "PTR_FMT"\n", 
-		kernel_start, kernel_size, kernel_load_address));
 
 	/*
 	 * Now read the rest of the kernel image into memory.

@@ -149,6 +149,12 @@ sysdeps_initrd_get_addr(kdesc_t *kd, memdesc_t *imem)
 	return 0;
 }
 
+VOID *
+sysdeps_checkfix_initrd(VOID *start_addr, memdesc_t *imem)
+{
+	return start_addr;
+}
+
 VOID
 sysdeps_free_boot_params(boot_params_t *bp)
 {
