@@ -96,6 +96,8 @@ create_boot_params(CHAR16 *args, memdesc_t *initrd, memdesc_t *vmcode, UINTN *co
 	 */
 	Memset(bp, 0, BOOT_PARAM_MEMSIZE);
 
+	U2ascii(args, cp, cmdline_size);
+
 	if (sysdeps_create_boot_params(bp, cp, initrd, vmcode, cookie) == -1) return 0;
 
 	/*

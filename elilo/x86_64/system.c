@@ -38,10 +38,18 @@
  */
 #include <efi.h>
 #include <efilib.h>
+#include <string.h>
 
 #include "elilo.h"
 #include "loader.h"
 #include "rmswitch.h"
+
+#define DEBUG_CREATE_BOOT_PARAMS 0
+#if DEBUG_CREATE_BOOT_PARAMS
+#define DPR(a) do { if (elilo_opt.debug) { Print a; } } while ( 0 )
+#else
+#define DPR(a)
+#endif
 
 extern loader_ops_t bzimage_loader, plain_loader, gzip_loader; 
 
@@ -112,6 +120,8 @@ VOID *kernel_load_address = (VOID *)DEFAULT_KERNEL_START;
 
 VOID *initrd_start = NULL;
 UINTN initrd_size = 0;
+
+INTN e820_map_overflow = 0;
 
 INTN
 sysdeps_init(EFI_HANDLE dev)
@@ -372,9 +382,55 @@ static INTN get_video_info(boot_params_t * bp) {
 	return 0;
 }
 
+CHAR16 *
+StrStr(IN const CHAR16 *h, IN const CHAR16 *n)
+{
+	const CHAR16 *t = h;
+	CHAR16 *res;
+	int len = 0, i;
+
+	len = StrLen((CHAR16 *)n);
+	while(*t != CHAR_NULL) {
+	  res = StrChr( t, n[0]);
+	  if (!res) return res;
+	  for( i = 1; i < len && res[i] != CHAR_NULL && res[i] == n[i]; i++);
+	  if ( i == len ) return res;
+	  t = res + 1;
+	  if (t > h + CMDLINE_MAXLEN) return (CHAR16 *)0;
+	}
+
+	return (CHAR16 *)0;
+}
+
+CHAR8 *
+StrStr8(IN const CHAR8 *h, IN const CHAR8 *n)
+{
+	const CHAR8 *t = h;
+	CHAR8 *res;
+	int len = 0, i;
+
+	len = strlena((CHAR8 *)n);
+	while(*t != 0) {
+	  res = strchra( t, n[0]);
+	  if (!res) return res;
+	  for( i = 1; i < len && res[i] != 0 && res[i] == n[i]; i++);
+	  if ( i == len ) return res;
+	  t = res + 1;
+	  if (t > (h + CMDLINE_MAXLEN)) return (CHAR8 *)0;
+	}
+
+	return (CHAR8 *)0;
+}
+
 /* Convert EFI memory map to E820 map for the operating system 
  * This code is based on a Linux kernel patch submitted by Edgar Hucek
  */
+
+#if DEBUG_CREATE_BOOT_PARAMS
+static int e820_max = 6;
+#else
+static int e820_max = E820_MAX;
+#endif
 
 /* Add a memory region to the e820 map */
 static void add_memory_region (struct e820entry *e820_map,
@@ -384,21 +440,56 @@ static void add_memory_region (struct e820entry *e820_map,
 			       unsigned int type)
 {
 	int x = *e820_nr_map;
+	static unsigned long long estart = 0ULL;
+	static unsigned long esize = 0L;
+	static unsigned int etype = -1;
+	static int merge = 0;
 
-	if (x == E820_MAX) {
-		Print(L"Too many entries in the memory map!\n");
+	if (x == 0)
+		DPR((L"AMR: %3s %4s %16s/%12s/%s\n",
+			L"idx", L" ", L"start", L"size", L"type"));
+
+	/* merge adjacent regions of same type */
+	if ((x > 0) && e820_map[x-1].addr + e820_map[x-1].size == start
+	    && e820_map[x-1].type == type) {
+		e820_map[x-1].size += size;
+		estart = e820_map[x-1].addr;
+		esize  = e820_map[x-1].size;
+		etype  = e820_map[x-1].type;
+		merge++;
 		return;
 	}
-
-	if ((x > 0) && e820_map[x-1].addr + e820_map[x-1].size == start
-	    && e820_map[x-1].type == type)
-		e820_map[x-1].size += size;
-	else {
+	/* fill up to E820_MAX */
+	if ( x < e820_max ) {
 		e820_map[x].addr = start;
 		e820_map[x].size = size;
 		e820_map[x].type = type;
 		(*e820_nr_map)++;
+		if (merge) DPR((L"AMR: %3d ==>  %016llx/%012lx/%d (%d)\n",
+				x-1, estart, esize, etype, merge));
+		merge=0;
+		DPR((L"AMR: %3d add  %016llx/%012lx/%d\n",
+			x, start, size, type));
+		return;
 	}
+	/* different type means another region didn't fit */
+	/* or same type, but there's a hole */
+	if (etype != type || (estart + esize) != start) {
+		if (merge) DPR((L"AMR: %3d ===> %016llx/%012lx/%d (%d)\n",
+			e820_map_overflow, estart, esize, etype, merge));
+		merge = 0;
+		estart = start;
+		esize = size;
+		etype = type;
+		e820_map_overflow++;
+		DPR((L"AMR: %3d OVER %016llx/%012lx/%d\n",
+			 e820_map_overflow, start, size, type));
+		return;
+	}
+	/* same type and no hole, merge it */
+	estart += esize;
+	esize += size;
+	merge++;
 }
 
 void fill_e820map(boot_params_t *bp, mmap_desc_t *mdesc)
@@ -477,6 +568,7 @@ void fill_e820map(boot_params_t *bp, mmap_desc_t *mdesc)
 			break;
 		default:
 			/* We should not hit this case */
+			DBG_PRT((L"hit default!?"));
 			add_memory_region(e820_map, &e820_nr_map,
 					  md->PhysicalStart,
 					  md->NumberOfPages << EFI_PAGE_SHIFT,
@@ -490,6 +582,8 @@ void fill_e820map(boot_params_t *bp, mmap_desc_t *mdesc)
 
 /*
  * x86_64 specific boot parameters initialization routine
+ *
+ * Note: debug and verbose messages have already been turned off!
  */
 INTN
 sysdeps_create_boot_params(
@@ -505,6 +599,12 @@ sysdeps_create_boot_params(
 	UINT8 row, col;
 	UINT8 mode;
 	UINT16 hdr_version;
+	UINT8 e820_map_overflow_warned = 0;
+
+#if DEBUG_CREATE_BOOT_PARAMS
+	elilo_opt.debug=1;
+	elilo_opt.verbose=5;
+#endif
 
 	DBG_PRT((L"fill_boot_params()\n"));
 
@@ -838,6 +938,31 @@ do_memmap:
 	 * and update the bootparam accordingly
 	 */
 	fill_e820map(bp, &mdesc);
+
+#if DEBUG_CREATE_BOOT_PARAMS
+	if ( e820_map_overflow == 0 )
+		e820_map_overflow = -1; /* force second get_memmap()! */
+#endif
+	if (e820_map_overflow && !e820_map_overflow_warned) {
+		CHAR8 *aem = (CHAR8 *)"add_efi_memmap";
+		e820_map_overflow_warned++;
+
+#if DEBUG_CREATE_BOOT_PARAMS
+		elilo_opt.debug=0;
+		elilo_opt.verbose=0;
+#endif
+		if (e820_map_overflow == -1 || StrStr8(cmdline, aem)) {
+			/* Print(L"...mapping again, silently!\n"); */
+			goto do_memmap;
+		}
+
+		Print(L"\nCAUTION: EFI memory map has %d more entr%a"
+			" than E820 map supports.\n"
+			"To access all memory, '%a' may be necessary.\n\n",
+			e820_map_overflow, (e820_map_overflow==1)?"y":"ies",
+			aem);
+		goto do_memmap;
+	}
 	
 	return 0;
 }
