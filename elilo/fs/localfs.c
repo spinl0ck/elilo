@@ -98,7 +98,7 @@ localfs_open(localfs_interface_t *this, CHAR16 *name, UINTN *fd)
 
 	DBG_PRT((L"localfs_open on %s\n", name));
 
-	status = uefi_call_wrapper(lfs->volume->Open, 5, lfs->volume, &fh, name, EFI_FILE_MODE_READ, 0);
+	status = uefi_call_wrapper(lfs->volume->Open, 5, lfs->volume, &fh, name, EFI_FILE_MODE_READ, (UINT64)0);
 	if (status == EFI_SUCCESS) {
 		*fd = LOCALFS_F2FD(fh);
 	} 
