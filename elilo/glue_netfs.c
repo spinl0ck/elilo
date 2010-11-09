@@ -65,6 +65,19 @@ static CHAR16 netfs_default_path[FILENAME_MAXLEN];
 static CHAR16 *hexa=L"0123456789ABCDEF";
 
 static VOID
+convert_mac2hex(UINT8 *hw_addr,INTN l, CHAR16 *str)
+{
+ 	UINTN i;
+
+	for (i=0 ; i < l; i++) {
+		str[3*i] = hexa[(hw_addr[i] & 0xf0)>>4];
+		str[3*i+1] = hexa[hw_addr[i] & 0x0f];
+		str[3*i+2] = ':';
+	}
+	str[3*l-1]='\0';
+}
+
+static VOID
 convert_ip2hex(UINT8 *ip, INTN l, CHAR16 *str)
 {
 	UINTN i;
@@ -210,6 +223,12 @@ netfs_setdefaults(VOID *intf, config_file_t *config, CHAR16 *kname, UINTN maxlen
 
 		StrnCpy(config[6].fname, str, maxlen-1);
 		StrnCpy(config[6].fname+2, CONFIG_EXTENSION, 6);
+
+		/* use the MAC address as a possible file name as well */
+		convert_mac2hex(info.hw_addr,6,str);
+		StrnCpy(config[7].fname, str, maxlen-1);
+		StrnCpy(config[7].fname+17, CONFIG_EXTENSION, 6);
+
 #else
 		StrnCpy(config[0].fname, NETFS_DEFAULT_CONFIG, maxlen-1);
 		config[0].fname[maxlen-1] = CHAR_NULL;
