@@ -241,6 +241,10 @@ static INTN get_video_info(boot_params_t * bp) {
         UINTN size1;
         UINT8 i;
 
+	if (x86_64_text_mode() == 1) {
+		Print((L"Skip GOP init, force text-mode.\n"));
+		return -1;
+	}
 	efi_status = uefi_call_wrapper(
 			BS->LocateHandle,
 			5,

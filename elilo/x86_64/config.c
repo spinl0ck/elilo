@@ -33,14 +33,22 @@
 
 typedef struct {
 	UINTN legacy_free_boot;
+	UINTN text_mode;
 } x86_64_global_config_t;
 
+
+#define x86_64_opt_offsetof(option)    (&((sys_img_options_t *)(0x0))->option)
 
 static x86_64_global_config_t x86_64_gconf;
 
 static config_option_t sysdeps_global_options[]={
 	{OPT_BOOL,	OPT_GLOBAL, L"legacy-free",	NULL,	NULL,	&x86_64_gconf.legacy_free_boot}
 };
+
+static config_option_t sysdeps_image_options[]={
+	{OPT_BOOL,	OPT_IMAGE_SYS, L"text-mode",	NULL,	NULL,	x86_64_opt_offsetof(text_mode)}
+};
+
 
 /*
  * X86_64 operations that need to be done only once and just before 
@@ -81,6 +89,14 @@ x86_64_use_legacy_free_boot(VOID)
 	return x86_64_gconf.legacy_free_boot ? 1 : 0;
 }
 
+
+INTN
+x86_64_text_mode(VOID)
+{
+	return (elilo_opt.sys_img_opts &&
+		elilo_opt.sys_img_opts->text_mode == TRUE) ? 1 : 0;
+}
+
 INTN
 sysdeps_register_options(VOID)
 {
@@ -89,14 +105,11 @@ sysdeps_register_options(VOID)
 	ret = register_config_options(sysdeps_global_options, 
 				      sizeof(sysdeps_global_options)/sizeof(config_option_t),
 				      OPTIONS_GROUP_GLOBAL);
-#if 0
-	/* no per image options yet */
 	if (ret == -1 ) return ret;
 
 	ret = register_config_options(sysdeps_image_options, 
 				      sizeof(sysdeps_image_options)/sizeof(config_option_t),
 				      OPTIONS_GROUP_IMAGE);
-#endif
 
 	return ret;
 }

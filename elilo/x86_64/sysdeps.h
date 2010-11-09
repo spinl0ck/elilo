@@ -364,6 +364,7 @@ extern UINT8 rmswitch_image[];
 extern UINTN rmswitch_size;
 
 extern INTN x86_64_use_legacy_free_boot();
+extern INTN x86_64_text_mode();
 
 /*
  * How to jump to kernel code
@@ -457,7 +458,8 @@ start_kernel(VOID *kentry, boot_params_t *bp)
 }
 
 typedef struct sys_img_options {
-	UINT8 nothing_yet;
+	UINT8 dummy;	 /* forces non-zero offset for first field */
+	UINT8 text_mode; /* do not try to initialize Graphics Output Protocol */
 } sys_img_options_t;
 
 #endif /* __ELILO_SYSDEPS_X86_64_H__ */
