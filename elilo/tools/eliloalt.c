@@ -47,8 +47,10 @@
 #define ELILOALT_VERSION	"0.02"
 
 #define ELILO_ALT_NAME	"EliloAlt"
-#define EFIVAR_DIR	"/proc/efi/vars"
+#define EFIVAR_DIR	"/sys/firmware/efi/vars"
+#define OFIVAR_DIR	"/proc/efi/vars"
 #define ELILO_ALTVAR	EFIVAR_DIR"/"ELILO_ALT_NAME"-00000000-0000-0000-0000-000000000000"
+#define OLILO_ALTVAR	OFIVAR_DIR"/"ELILO_ALT_NAME"-00000000-0000-0000-0000-000000000000"
 
 #define EFI_VARIABLE_NON_VOLATILE 0x0000000000000001
 #define EFI_VARIABLE_BOOTSERVICE_ACCESS 0x0000000000000002
@@ -80,7 +82,9 @@ typedef struct _efi_variable_t {
         uint32_t        attributes;
 } __attribute__((packed)) efi_variable_t;
 
+static char *efivar_dir = EFIVAR_DIR;
 static char *elilo_alt_name = ELILO_ALT_NAME;
+static char *elilo_altvar = ELILO_ALTVAR;
 
 static struct option cmd_options[]={
 	{ "version", 0, 0, 1},
@@ -129,9 +133,15 @@ check_proc_efi(int find_entry)
 	if (getuid() != 0) {
 		fatal_error("This program must be run as root\n");
 	}
-	efi_vars = opendir(EFIVAR_DIR);
+	efi_vars = opendir(efivar_dir);
 	if (efi_vars == NULL) {
-		fatal_error("Cannot access %s\n", EFIVAR_DIR);
+		efivar_dir = OFIVAR_DIR;
+		elilo_altvar = OLILO_ALTVAR;
+		efi_vars = opendir(efivar_dir);
+	}
+	if (efi_vars == NULL) {
+		fatal_error("Can access neither %s nor %s\n",
+			    EFIVAR_DIR, efivar_dir);
 	}
 	if (!find_entry) {
 		closedir(efi_vars);
@@ -143,9 +153,10 @@ check_proc_efi(int find_entry)
 			break;
 	}
 	if (entry == NULL) {
-		fatal_error("Cannot find entry in %s\n", EFIVAR_DIR);
+		fatal_error("Cannot find entry in %s\n", efivar_dir);
 	}
-	sprintf(name, "%s/%s", EFIVAR_DIR, entry->d_name);
+	snprintf(name, 1023, "%s/%s", efivar_dir, entry->d_name);
+	name[1023] = 0;
 	closedir(efi_vars);
 	return name;
 }
@@ -158,7 +169,7 @@ delete_var(void)
 
 	check_proc_efi(0);
 
-	fd = open(ELILO_ALTVAR, O_WRONLY);
+	fd = open(elilo_altvar, O_WRONLY);
 	if (fd == -1) {
 		fatal_error("variable not defined\n");
 	}
@@ -176,7 +187,7 @@ delete_var(void)
 	
 	r = write(fd, &var, sizeof(var));
 	if (r != sizeof(var)) {
-		fatal_error("Variable %s defined but invalid content\n", ELILO_ALTVAR);
+		fatal_error("Variable %s defined but invalid content\n", elilo_altvar);
 	}
 	close(fd);
 }
@@ -191,7 +202,7 @@ print_var(void)
 
 	check_proc_efi(0);
 
-	fd = open(ELILO_ALTVAR, O_RDONLY);
+	fd = open(elilo_altvar, O_RDONLY);
 	if (fd == -1) {
 		fatal_error("variable not defined\n");
 	}
@@ -200,7 +211,7 @@ print_var(void)
 
 	r = read(fd, &var, sizeof(var));
 	if (r != sizeof(var)) {
-		fatal_error("Variable %s defined but invalid content\n", ELILO_ALTVAR);
+		fatal_error("Variable %s defined but invalid content\n", elilo_altvar);
 	}
 	printf("EliloAlt=\"");
 	for(i=0; i < var.datasize; i+=1){
@@ -231,7 +242,7 @@ set_var(char *cmdline)
 
 	fd = open(name, O_WRONLY);
 	if (fd == -1) {
-		fatal_error("can't open %s: %s\n", ELILO_ALTVAR, strerror(errno));
+		fatal_error("can't open %s: %s\n", elilo_altvar, strerror(errno));
 	}
 
 	memset(&var, 0, sizeof(var));
@@ -256,7 +267,7 @@ set_var(char *cmdline)
 	
 	r = write(fd, &var, sizeof(var));
 	if (r != sizeof(var)) {
-		fatal_error("Variable %s defined but invalid content %d\n", ELILO_ALTVAR, r);
+		fatal_error("Variable %s defined but invalid content %d\n", elilo_altvar, r);
 	}
 	close(fd);
 
