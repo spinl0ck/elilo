@@ -207,8 +207,8 @@ static INTN get_video_info(boot_params_t * bp) {
 			(VOID **)Gop_handle);
 
 	if (EFI_ERROR(efi_status) && efi_status != EFI_BUFFER_TOO_SMALL) {
-                Print(L"LocateHandle GopProtocol failed.\n"));
-                Print(L"--Either no graphics head is installed,\n \ 
+                Print(L"LocateHandle GopProtocol failed.\n");
+                Print(L"--Either no graphics head is installed,\n" \ 
                        "--efi console is set to serial, or,\n" \
                        "--the EFI firmware version of this machine is\n" \
                        "--older than UEFI 2.0. and does not support GOP");
