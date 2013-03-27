@@ -23,10 +23,15 @@
 # to use this program.
 #
 
-include ../Make.defaults
-include ../Make.rules
+SRCDIR = .
 
-TOPDIR=$(CDIR)/..
+VPATH = $(SRCDIR)
+
+include $(SRCDIR)/../Make.defaults
+include $(SRCDIR)/../Make.rules
+
+TOPDIR=$(SRCDIR)/..
+
 
 FILES=simple.o
 
@@ -40,7 +45,7 @@ all: $(TARGET)
 #      without doing make clean.
 #
 $(TARGET): $(FILES)
-	$(LD) -r -o $@ $(FILES)
+	$(LD) $(LD3264) -r -o $@ $(FILES)
 
 clean:
 	$(RM) -f $(TARGET) $(FILES)

@@ -23,10 +23,15 @@
 # to use this program.
 #
 
-include ../Make.defaults
-include ../Make.rules
+SRCDIR = .
 
-TOPDIR=$(CDIR)/..
+VPATH = $(SRCDIR)
+
+include $(SRCDIR)/../Make.defaults
+include $(SRCDIR)/../Make.rules
+
+TOPDIR=$(SRCDIR)/..
+
 
 FILES=system.o config.o bzimage.o plain_loader.o gzip_loader.o gzip.o
 
@@ -37,13 +42,13 @@ all: $(TARGET)
 system.o: rmswitch.h
 
 rmswitch.h: bin_to_h.c rmswitch.S
-	$(CC) -o bin_to_h bin_to_h.c
-	$(AS) -o rmswitch.o rmswitch.S
+	$(CC) -o bin_to_h $(SRCDIR)/bin_to_h.c
+	$(AS) -o rmswitch.o $(SRCDIR)/rmswitch.S
 	$(LD) -Ttext 0x0 -s --oformat binary -o rmswitch rmswitch.o
 	./bin_to_h <rmswitch >rmswitch.h
 
 $(TARGET): $(FILES)
-	$(LD) -r -o $@ $(FILES)
+	$(LD) $(LD3264) -r -o $@ $(FILES)
 
 clean:
 	$(RM) -f $(TARGET) $(FILES)

@@ -207,19 +207,8 @@ static INTN get_video_info(boot_params_t * bp) {
 			(VOID **)Gop_handle);
 
 	if (EFI_ERROR(efi_status) && efi_status != EFI_BUFFER_TOO_SMALL) {
-                Print(L"LocateHandle GopProtocol failed.\n");
-                Print(L"--Either no graphics head is installed,\n" \ 
-                       "--efi console is set to serial, or,\n" \
-                       "--the EFI firmware version of this machine is\n" \
-                       "--older than UEFI 2.0. and does not support GOP");
-                Print(L"you can SAFELY IGNORE this error. elilo will\n" \
-                       "default to text-mode.\n Alternatively you can " \
-                       "now force text mode by setting config variable\n" \
-                       "text_mode=1 for x86 in elilo.conf or via cmdline.\n\n");
-                Print(L"However if this is the last text output you see\n" \
-                       "ensure that your kernel console command line\n " \
-                       "variable matches up with the actual efi boot menu\n" \
-                       "console output settings. for example efi console\n\n");
+                Print(L"EFI returned no GoP handle, No Graphics Output Device?\n");
+                Print(L"--Elilo will try to default to console text mode.\n");
 		return -1;
 	}
 	Gop_handle = alloc(size, 0);
@@ -488,9 +477,6 @@ sysdeps_create_boot_params(
 	 */
 	if (param_start != NULL) {
 		CopyMem(bp, param_start, 0x2000);
-		free(param_start);
-		param_start = NULL;
-		param_size = 0;
 	}
 	/*
 	 * Save off our header revision information.

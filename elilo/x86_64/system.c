@@ -641,10 +641,8 @@ sysdeps_create_boot_params(
 	 */
 	if (param_start != NULL) {
 		CopyMem(bp, param_start, 0x2000);
-		free(param_start);
-		param_start = NULL;
-		param_size = 0;
 	}
+
 	/*
 	 * Save off our header revision information.
 	 */
@@ -703,10 +701,8 @@ sysdeps_create_boot_params(
 	DBG_PRT((L"initrd->start_addr="PTR_FMT"  initrd->pgcnt=%d\n",
 		initrd->start_addr, initrd->pgcnt));
 
-	/* These RAMdisk flags are not needed, just zero them. NOT!*/
 	/* 'ramdisk_flags' (@0x1F8) is called 'ram_size' in the meantime, */
 	/* see Documentation/x86/boot.txt. */
-
 	if (initrd->start_addr && initrd->pgcnt) {
 		if ( (UINT64)initrd->start_addr > UINT32_MAX ) {
 			ERR_PRT((L"Start of initrd out of reach (>4GB)."));

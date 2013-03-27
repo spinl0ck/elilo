@@ -23,10 +23,15 @@
 # to use this program.
 #
 
-include ../Make.defaults
-include ../Make.rules
+SRCDIR = .
 
-TOPDIR=$(CDIR)/..
+VPATH = $(SRCDIR)
+
+include $(SRCDIR)/../Make.defaults
+include $(SRCDIR)/../Make.rules
+
+TOPDIR=$(SRCDIR)/..
+
 
 FILES=
 
@@ -47,7 +52,8 @@ $(TARGET): $(TOPDIR)/Make.defaults $(FILES)
 		echo "You need to define at least one chooser in Make.defaults"; \
 		exit 1; \
 	fi
-	$(LD) -o $@ -r $(FILES)
+	$(LD) $(LD3264) -o $@ -r $(FILES)
+
 
 clean:
 	$(RM) -f $(TARGET) $(FILES)

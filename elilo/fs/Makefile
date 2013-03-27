@@ -23,10 +23,15 @@
 # to use this program.
 #
 
-include ../Make.defaults
-include ../Make.rules
+SRCDIR = .
 
-TOPDIR=$(CDIR)/..
+VPATH = $(SRCDIR)
+
+include $(SRCDIR)/../Make.defaults
+include $(SRCDIR)/../Make.rules
+
+TOPDIR=$(SRCDIR)/..
+
 
 FILES=
 ifeq ($(CONFIG_localfs),y)
@@ -59,7 +64,7 @@ $(TARGET): $(TOPDIR)/Make.defaults $(FILES)
 		echo "You need to define at least one filesystem in Make.defaults"; \
 		exit 1; \
 	fi
-	$(LD) -r -o $@ $(FILES)
+	$(LD) $(LD3264) -r -o $@ $(FILES)
 
 clean:
 	$(RM) -f $(TARGET) $(FILES)

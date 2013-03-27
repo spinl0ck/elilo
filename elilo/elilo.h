@@ -29,7 +29,7 @@
 #ifndef __ELILO_H__
 #define __ELILO_H__
 
-#define ELILO_VERSION L"3.14"
+#define ELILO_VERSION L"3.16"
 
 #include <efi.h>
 

@@ -25,15 +25,19 @@
 # to use this program.
 #
 
-include Make.defaults
-TOPDIR=.
+SRCDIR = .
+
+VPATH = $(SRCDIR)
+
+include $(SRCDIR)/Make.defaults
+TOPDIR = $(SRCDIR)
 
 
 CRTOBJS       = $(EFICRT0)/crt0-efi-$(ARCH).o
 LDSCRIPT      = $(EFICRT0)/elf_$(ARCH)_efi.lds
 
 LDFLAGS	     += -T $(LDSCRIPT) -shared -Bsymbolic -L$(EFILIB) -L$(GNUEFILIB) $(CRTOBJS)
-LOADLIBES     = -lefi -lgnuefi $(shell $(CC) -print-libgcc-file-name)
+LOADLIBES     = -lefi -lgnuefi $(shell $(CC) $(ARCH3264) -print-libgcc-file-name)
 FORMAT        = efi-app-$(ARCH)
 
 FILESYSTEM    =
@@ -87,12 +91,13 @@ fileops.o : Make.defaults
 chooser.o : Make.defaults
 
 $(SUBDIRS): dummy
-	$(MAKE) -C $@
+	mkdir -p $@
+	$(MAKE) -C $@ -f $(SRCDIR)/../$@/Makefile SRCDIR=$(SRCDIR)/../$@ ARCH=$(ARCH)
 
 dummy:
 
 clean:
-	@set -e ; for d in $(SUBDIRS) ; do $(MAKE) -C $$d $@ ; done
+	@set -e ; for d in $(ALLSUBDIRS) ; do $(MAKE) -C $$d $@ ; done
 	rm -f $(TARGETS) *~ *.so $(FILES)
 
 .PRECIOUS: elilo.so
@@ -106,4 +111,4 @@ ifeq ($(GCC_VERSION),2)
 	@exit 1
 endif
 
-include Make.rules
+include $(SRCDIR)/Make.rules

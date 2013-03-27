@@ -1,4 +1,19 @@
-2011-1-10 signed off by Jason Fleischli <jason.fleischli@hp.com>
+2013-03-27 signed off by Jason Fleischli <fleischli@users.sourceforge.net>
+	* ADD CROSSBUILD
+	* intake edited version of Debian x86x crossbuild patches.
+	* Fixed Makefile clean to include crossbuild envs.
+	* Fixed ia32 system.c compile warning
+	* Simplified efi no GOP warning so it doesnt look like an error.
+	* MAJOR: Fixed Fault crash when EFI memory map changes from under elilo.
+	  (from an outside interrupt in this case). When the EFI Memory map 
+	  changes after elilo has already built boot params to pass to the 
+	  kernel the EFI call to ExitBootSvcs just prior to boot will fail 
+	  because elilo has the old map key. This is valid EFI behavior, elilo
+	  retries to pick up the new memory map and valid key but had already freed 
+	  the start params portion of boot params resulting in a NULL DEREF
+	  crash reset.
+
+2011-1-10 signed off by Jason Fleischli <fleischli@users.sourceforge.net>
 	* Uptake of SUSE patches
 	- add sysfs support for efi vars (formerly /proc/efi/vars)
 	- fix strncpy overflow
@@ -12,7 +27,7 @@
 	* replace error output on GOP handle failed, downgraded to normal
 	  print status with more informative output.
 
-2009-10-22 signed off by Jason Fleischli <jason.fleischli@hp.com>
+2009-10-22 signed off by Jason Fleischli <fleischli@users.sourceforge.net>
 	* elilo 3.12 release commit
 	* Added additional #defines for debug levels to reduce the output
 	* Added Mac console patch rework from Julien Blache @ debian
@@ -34,7 +49,8 @@
 	  x86_64... this is a legacy design hold over from original design and
 	  needs to be re-written to do dynamic size memory management based on
 	  the size of the actual vmlinuz image, as ia64/gzip does. 
-2008-04-02 signed off by Jason Fleischli <jason.fleischli@hp.com>
+
+2008-04-02 signed off by Jason Fleischli <fleischli@users.sourceforge.net>
 	* elilo 3.10 release commit
 	* Bumped version string to 3.10
 	* added PTR_FMT 32bit & 64bit pointer translation for correct output
@@ -54,10 +70,10 @@
 	* bugfix loader_probe now correctly errors out if no loaders
 	  registered.
 
-2008-01-11 signed off by Jason Fleischli <jason.fleischli@hp.com>
+2008-01-11 signed off by Jason Fleischli <fleischli@users.sourceforge.net>
 	* Various compile warning cleanups.
 
-2008-01-03 signed off by Jason Fleischli <jason.fleischli@hp.com>
+2008-01-03 signed off by Jason Fleischli <fleischli@users.sourceforge.net>
 	* Patch contribution from Scott Davilla <davilla@4pi.com>
 	  when x is zero for the first call to add_memory_region, e820_map[-1] 
 	  will access memory outside the bounds of e820_map. While this does 
@@ -66,7 +82,7 @@
 	  bootloader, the code should not access outside the bounds of 
 	  structures. 
 
-2008-01-03 Jason Fleischli <jason.fleischli@hp.com>
+2008-01-03 Jason Fleischli <fleischli@users.sourceforge.net>
 	* initrd.c -- Let the allocator decide where to grab the memory from 
 	  the efi memory map. Current start_addr=image->start_addr forces the 
 	  same efi region everytime, and has a 7mb limit. ramdisk (initrd.img) 
@@ -75,10 +91,10 @@
 	  NULL at initialization forces alloc_pages to get a memory region 
 	  sufficient for the size of the initrd image.
 
-2007-12-19 Jason Fleischli <jason.fleischli@hp.com>
+2007-12-19 Jason Fleischli <fleischli@users.sourceforge.net>
 	* bumping version string to 3.8
 
-2007-12-19 Jason Fleischli <jason.fleischli@hp.com>
+2007-12-19 Jason Fleischli <fleischli@users.sourceforge.net>
 	* MORE PATCHES FROM INTEL FOR IA32 X86_64.
 	* Fix compile warning for cmdline_addr assignment.
 	* Fix an issue caused by uninitialized e820_nr_map in fill_e820map.
@@ -103,13 +119,13 @@
 	* E820 memory map is added to IA32 to make it possible for
 	  Linux kernel not to depend on EFI memory map on EFI 32.
 
-2007-09-27 Jason Fleischli <jason.fleischli@hp.com>
+2007-09-27 Jason Fleischli <fleischli@users.sourceforge.net>
 	* updating changelog for last commit that was omitted
 	* incorporating AGriffis patches to enhance parsing
 	  passes root= option to kernel options and accounts for -- option
 	  designation.
 
-2007-07-19 Jason Fleischli <jason.fleischli@hp.com>
+2007-07-19 Jason Fleischli <fleischli@users.sourceforge.net>
 	* Integrated x86_64 support patches from Chandramouli Narayanan
 	  <mouli@linux.intel.com> changes summarized in following bullets.
 	* alloc.c -- adds patch contributors credit to copyright

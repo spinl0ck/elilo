@@ -23,10 +23,15 @@
 # to use this program.
 #
 
-include ../Make.defaults
-include ../Make.rules
+SRCDIR = .
 
-TOPDIR=$(CDIR)/..
+VPATH = $(SRCDIR)
+
+include $(SRCDIR)/../Make.defaults
+include $(SRCDIR)/../Make.rules
+
+TOPDIR=$(SRCDIR)/..
+
 
 FILES=system.o config.o fpswa.o plain_loader.o gzip_loader.o \
       gzip.o memset.o memcpy.o setjmp.o longjmp.o

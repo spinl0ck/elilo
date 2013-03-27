@@ -61,14 +61,17 @@ EFICRT0	   = /usr/lib
 
 CDIR    := $(shell if [ "$$PWD" != "" ]; then echo $$PWD; else pwd; fi)
 TOPDIR  =
+ALLSUBDIRS = ia32 ia64 x86_64 fs choosers devschemes tools
 
-ARCH	   = $(shell uname -m | sed s,i[3456789]86,ia32,)
+HOSTARCH   = $(shell dpkg-architecture -qDEB_BUILD_ARCH | sed s,i[3456789]86,ia32, | sed s,amd64,x86_64, )
+ARCH	   := $(shell dpkg-architecture -qDEB_BUILD_ARCH | sed s,i[3456789]86,ia32, | sed s,amd64,x86_64, )
 INCDIR	   = -I. -I$(TOPDIR) -I$(EFIINC) -I$(EFIINC)/$(ARCH) -I$(EFIINC)/protocol -I$(TOPDIR)/efi110
 CPPFLAGS   = -DCONFIG_$(ARCH) 
 
 OPTIMFLAGS = -O2 
 DEBUGFLAGS = -Wall
-CFLAGS     = $(OPTIMFLAGS) -fno-stack-protector -fno-strict-aliasing -fpic -fshort-wchar $(DEBUGFLAGS)
+CFLAGS     = $(ARCH3264) $(OPTIMFLAGS) -fno-stack-protector -fno-strict-aliasing -fpic -fshort-wchar $(DEBUGFLAGS)
+ASFLAGS    = $(ARCH3264)
 LDFLAGS	   = -nostdlib -znocombreloc
 INSTALL	   = install
 
@@ -108,8 +111,28 @@ OBJCOPY	        = $(prefix)objcopy
 
 # Use Modified binutils that supports x86_64 using UEFI ABI
 ifeq ($(ARCH), x86_64)
+  ifeq ($(HOSTARCH), ia32)
+	ARCH3264 = -m64
+	LD3264 = -melf_x86_64
+
+	GNUEFILIB := $(GNUEFILIB)64
+	EFILIB    := $(EFILIB)64
+	EFICRT0   := $(EFICRT0)64
+  endif
+
         CFLAGS   += -DEFI_FUNCTION_WRAPPER
 	OBJCOPY	  = /usr/bin/objcopy
+endif
+
+ifeq ($(ARCH), ia32)
+  ifeq ($(HOSTARCH), x86_64)
+	ARCH3264 = -m32
+	LD3264 = -melf_i386
+
+	GNUEFILIB := /usr/lib32
+	EFILIB    := /usr/lib32
+	EFICRT0   := /usr/lib32
+  endif
 endif
 
 ifeq ($(ARCH),ia64)

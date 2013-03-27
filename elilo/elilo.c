@@ -240,7 +240,7 @@ main_loop(EFI_HANDLE dev, CHAR16 **argv, INTN argc, INTN index, EFI_HANDLE image
 	} 
 
 do_launch:
-	r =subst_vars(cmdline_tmp, cmdline, CMDLINE_MAXLEN);
+	r = subst_vars(cmdline_tmp, cmdline, CMDLINE_MAXLEN);
 
 	VERB_PRT(3, Print(L"final cmdline(%d): %s\n", r, cmdline));
 
@@ -481,7 +481,12 @@ efi_main (EFI_HANDLE image, EFI_SYSTEM_TABLE *system_tab)
 	 * mode.
 	 * XXX: clean this up !
 	 */
-       uefi_call_wrapper(BS->SetWatchdogTimer, 4, 0, 0x0, 0, NULL);
+	uefi_call_wrapper(BS->SetWatchdogTimer, 4, 0, 0x0, 0, NULL);
+
+	/*
+	 * start a clean console
+	 */
+	uefi_call_wrapper(systab->ConOut->Reset, 2, systab->ConOut, FALSE);
 
 	/* initialize memory allocator */
 	if (alloc_init() == -1) return EFI_LOAD_ERROR;
