@@ -46,7 +46,7 @@
 #include "loader.h"
 #include "config.h" /* for config_init() */
 
-#define ELILO_SHARED_CMDLINE_OPTS	L"pPMC:aDhd:i:vVc:E"
+#define ELILO_SHARED_CMDLINE_OPTS	L"pPMC:aDhd:i:m:vVc:E"
 
 elilo_config_t elilo_opt;
 

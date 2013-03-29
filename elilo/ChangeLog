@@ -9,9 +9,12 @@
 	  changes after elilo has already built boot params to pass to the 
 	  kernel the EFI call to ExitBootSvcs just prior to boot will fail 
 	  because elilo has the old map key. This is valid EFI behavior, elilo
-	  retries to pick up the new memory map and valid key but had already freed 
-	  the start params portion of boot params resulting in a NULL DEREF
-	  crash reset.
+	  retries to pick up the new memory map and valid key but had already 
+	  freed the start params portion of boot params resulting in a NULL 
+	  DEREF crash reset.
+	* Add console reset call during initialization. thanks A. Steinmetz
+	* minor bugfix, fixed -m option broken. thanks Allan-lsk.
+	* tag 3_16 for release
 
 2011-1-10 signed off by Jason Fleischli <fleischli@users.sourceforge.net>
 	* Uptake of SUSE patches
