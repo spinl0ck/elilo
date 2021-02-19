@@ -34,7 +34,7 @@
 boot_params_t *param_start = NULL;
 UINTN param_size = 0;
 
-UINTN kernel_size = 0x800000;	/* 8M (default x86_64 bzImage size limit) */
+UINTN kernel_size = 0xFFFFFF;	/* 16M (default x86_64 bzImage size limit) */
 
 static VOID *
 bzImage_alloc()
